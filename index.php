@@ -357,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $per_page = 25;
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
     $offset = ($page - 1) * $per_page;
-    $stmt = $db->query("SELECT COUNT(*) FROM problems");
+    $stmt = $db->query("SELECT COUNT(*) FROM problems WHERE archived");
     $total_problems = $stmt->fetchColumn();
     $total_pages = ceil($total_problems / $per_page);
     $stmt = $db->prepare("
