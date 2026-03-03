@@ -12,7 +12,9 @@
       <?php foreach ($scoreboard as $index => $row): ?>
         <tr>
           <td><?= $offset + $index + 1 ?></td>
-          <td><?= htmlspecialchars($row['username']) ?></td>
+          <td style="max-width: 400px">
+            <?= htmlspecialchars($row['username']) ?>
+          </td>
           <td><?= (int)$row['solved'] ?></td>
         </tr>
       <?php endforeach; ?>

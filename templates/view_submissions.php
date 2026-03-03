@@ -26,9 +26,11 @@
               <?= (int)$s['id'] ?>
             </a>
           </td>
-          <td><?= htmlspecialchars($s['username']) ?></td>
+          <td style="max-width: <?= $for_problem ? "300px" : "120px" ?>">
+            <?= htmlspecialchars($s['username']) ?>
+          </td>
           <?php if (!$for_problem): ?>
-            <td>
+            <td style="max-width: 280px">
               <a href="index.php?action=view_problem&id=<?= $s['problem']?>">
                 <?= htmlspecialchars($s['title']) ?>
               </a>

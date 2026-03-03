@@ -90,14 +90,11 @@
       border: 1px solid var(--border);
       margin: 10px 0;
     }
-    .truncate {
-      max-width: 150px;
-    }
     th, td {
       border: 1px solid var(--border);
       padding: 2px 12px;
       text-align: left;
-      max-width: 250px;
+      max-width: 150px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

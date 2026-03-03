@@ -19,7 +19,7 @@
       <?php foreach ($problems as $p): ?>
         <tr>
           <td><?= $p['id'] ?></td>
-          <td>
+          <td style="max-width: 400px">
             <?= $p['is_solved'] ? "🎉 " : "" ?>
             <a href="index.php?action=view_problem&id=<?= (int)$p['id'] ?>">
               <?= htmlspecialchars($p['title']) ?>

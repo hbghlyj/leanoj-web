@@ -24,8 +24,10 @@
           <?= (int)$submission['id'] ?>
         </a>
       </td>
-      <td><?= htmlspecialchars($submission['username']) ?></td>
-      <td>
+      <td style="max-width: 120px">
+        <?= htmlspecialchars($submission['username']) ?>
+      </td>
+      <td style="max-width: 280px">
         <a href="index.php?action=view_problem&id=<?= (int)$submission['problem'] ?>">
           <?= htmlspecialchars($submission['title']) ?>
         </a>

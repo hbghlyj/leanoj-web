@@ -18,7 +18,7 @@
       <?php foreach ($contests as $c): ?>
         <tr>
           <td><?= $c['id'] ?></td>
-          <td>
+          <td style="max-width: 300px">
             <a href="index.php?action=view_contest&id=<?= (int)$c['id'] ?>">
               <?= htmlspecialchars($c['title']) ?>
             </a>

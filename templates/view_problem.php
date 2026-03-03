@@ -55,7 +55,9 @@
               <?= (int)$s['id'] ?>
             </a>
           </td>
-          <td><?= htmlspecialchars($s['username']) ?></td>
+          <td style="max-width: 400px">
+            <?= htmlspecialchars($s['username']) ?>
+          </td>
           <td><?= $s['time'] ?? "Long time ago" ?></td>
           <td class="status-cell">
             <span class="status-<?= strtolower($s['status']) ?>">
