@@ -3,21 +3,21 @@
 <head>
   <title>Lean Online Judge</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      marked.use(markedKatex({
+        throwOnError: false,
+        displayMode: false,
+        nonStandard: true
+      }));
       const els = document.querySelectorAll('.markdown');
       for (const el of els) {
-        const rawText = el.textContent;
+        const rawText = el.textContent.trim();
         el.innerHTML = marked.parse(rawText);
-        renderMathInElement(el, {
-          delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
-          ]
-        });
       }
     });
   </script>
