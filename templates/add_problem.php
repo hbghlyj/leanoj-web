@@ -8,8 +8,6 @@
   <textarea name="template_text" style="white-space: nowrap" rows="4"></textarea>
   <p>Or upload as a file (.lean):</p>
   <input type="file" name="template_file" accept=".lean">
-  <h3>Note</h3>
-  <textarea rows="2" name="note"></textarea>
   <h3>Answer ID</h3>
   <input type="number" name="answer">
   <h3>Contest ID</h3>

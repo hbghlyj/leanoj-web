@@ -13,7 +13,7 @@
   <?php endif; ?>
 </h2>
 <?php if ($can_view): ?>
-  <p><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
+  <p class="markdown"><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
   <p style="font-size: 0.9em">
     <em>Replace </em><code>sorry</code><em> in the template below with your solution.</em>
   <?php if ($problem['answer']): ?>
