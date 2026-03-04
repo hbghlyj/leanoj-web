@@ -128,8 +128,8 @@
       border: 1px solid var(--border);
       overflow-x: auto;
     }
-    pre { 
-      margin: 0; 
+    pre {
+      margin: 0;
       font-size: 0.8rem;
       overflow-x: auto;
     }
@@ -142,9 +142,19 @@
     }
     .message {
       background: #fff5f5;
-      color: #c53030; 
+      color: #c53030;
       padding: 15px;
       margin-bottom: 20px;
+    }
+    .message {
+      background: #fff5f5;
+      color: #c53030;
+      padding: 15px;
+    }
+    .notification {
+      background: #fffaf0;
+      color: #9c4221;
+      padding: 1px 15px;
     }
     .admin-link {
       font-weight: bold;
@@ -195,3 +205,6 @@
   <?php if (isset($_GET['message'])): ?>
     <div class="message"><?= htmlspecialchars($_GET['message']) ?></div>
   <?php endif; ?>
+  <div class="notification markdown">
+    It has been noticed that [`native_decide`](https://lean-lang.org/doc/reference/latest/find/?domain=Verso.Genre.Manual.doc.tactic&name=Lean.Parser.Tactic.nativeDecide) causes Environment errors. This is expected but not obvious behavior. A page explaining different submissision verdicts will be added soon.
+  </div>
