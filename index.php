@@ -18,6 +18,9 @@ $action = $_GET['action'] ?? "view_problems";
 $is_admin = ($_SESSION['username'] ?? "") === 'admin';
 $user_id = (int)$_SESSION['user_id'] ?: null;
 
+$stmt = $db->query("SELECT text FROM website WHERE name = 'message'");
+$message = $stmt->fetchColumn();
+
 function validate_file($file_key, $max_size = 262144) {
   if ($_FILES[$file_key]['error'] !== UPLOAD_ERR_OK) {
     return "Upload failed";
@@ -30,11 +33,11 @@ function validate_file($file_key, $max_size = 262144) {
   }
 }
 
-function redirect($action = "view_problems", $params = [], $message = "") {
+function redirect($action = "view_problems", $params = [], $error = "") {
   $query = $params;
   $query['action'] = $action;
-  if ($message) {
-    $query['message'] = $message;
+  if ($error) {
+    $query['error'] = $error;
   }
   header("Location: index.php?" . http_build_query($query));
   exit;
@@ -67,7 +70,15 @@ if ($action === "logout") {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
-  if ($action === "register") {
+  if ($action === "edit_message" && $is_admin) {
+    $message = trim($_POST['message'] ?? "");
+    $stmt = $db->prepare("UPDATE website SET text = :text WHERE name = 'message'");
+    $stmt->execute([":text" => $message]);
+    header("Location: {$_SERVER['HTTP_REFERER']}");
+    exit;
+  }
+
+  elseif ($action === "register") {
     $username = trim($_POST['username'] ?? "");
     $password = $_POST['password'] ?? "";
     $repeat = $_POST['repeat-password'] ?? "";
@@ -327,7 +338,8 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $id = (int)$_POST['id'] ?: null;
     $stmt = $db->prepare("UPDATE submissions SET status = 'PENDING' WHERE id = :id");
     $stmt->execute([":id" => $id]);
-    redirect("view_submission", ["id" => $id]);
+    header("Location: {$_SERVER['HTTP_REFERER']}");
+    exit;
   }
 
   elseif ($action === "toggle_archive" && $is_admin) {
@@ -668,7 +680,6 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   elseif ($action === "status_info") {
     include "templates/status_info.php";
   }
-
   include "templates/footer.php";
 }
 ?>

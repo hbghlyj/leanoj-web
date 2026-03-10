@@ -140,21 +140,17 @@
       font-size: 0.7rem;
       padding: 1px 6px;
     }
-    .message {
+    .error {
       background: #fff5f5;
       color: #c53030;
       padding: 15px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     .message {
-      background: #fff5f5;
-      color: #c53030;
-      padding: 15px;
-    }
-    .notification {
       background: #fffaf0;
       color: #9c4221;
       padding: 1px 15px;
+      margin-bottom: 10px;
     }
     .admin-link {
       font-weight: bold;
@@ -203,6 +199,18 @@
     <?php endif; ?>
   </nav>
   <hr>
-  <?php if (isset($_GET['message'])): ?>
-    <div class="message"><?= htmlspecialchars($_GET['message']) ?></div>
+
+  <?php if ($is_admin): ?>
+    <form method="POST" action="index.php?action=edit_message">
+      <div style="display: flex; gap: 5px">
+        <input style="flex-grow: 1" type="text" name="message" value="<?= $message ?>">
+        <input type="submit" value="Save">
+      </div>
+    </form>
+  <?php elseif ($message): ?>
+    <div class="message markdown"><?= $message ?></div>
+  <?php endif; ?>
+
+  <?php if (isset($_GET['error'])): ?>
+    <div class="error"><?= htmlspecialchars($_GET['error']) ?></div>
   <?php endif; ?>
