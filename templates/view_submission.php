@@ -34,7 +34,7 @@
       </td>
       <td><?= $submission['time'] ?: "Long time ago" ?></td>
       <td class="status-cell">
-        <span class="status-<?= str_replace(' ', '-', strtolower($s['status'])) ?>">
+        <span class="status-<?= str_replace(' ', '-', strtolower($submission['status'])) ?>">
           <?= htmlspecialchars($submission['status']) ?>
         </span>
         <a href="index.php?action=status_info">ⓘ</a>
