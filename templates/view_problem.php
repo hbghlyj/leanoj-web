@@ -14,12 +14,12 @@
 </h2>
 <?php if ($can_view): ?>
   <p class="markdown"><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
-  <p class="markdown">
-    _Replace_ `sorry` _in the template below with your solution.
+  <p>
+    <em>Replace</em> <code>sorry</code> <em>in the template below with your solution.</em>
     <?php if ($problem['answer']): ?>
-      See [Answer Bank](index.php?action=view_answers) for acceptible answer declarations.
+      <em>See</em> <a href="index.php?action=view_answers">Answer Bank</a> <em>for acceptible answer declarations.</em>
     <?php endif; ?>
-    Mathlib version used by the checker is v4.28.0_.
+    <em>Mathlib version used by the checker is v4.29.0.</em>
   </p>
   <div class="code-container">
     <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>

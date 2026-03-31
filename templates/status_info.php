@@ -13,7 +13,7 @@
 </p>
 <h3>Compilation Error</h3>
 </p>
-  Submission compilation has failed. Make sure your <code>Mathlib</code> version matches the one used by the checker. It is normally the latest stable (currently, v4.28.0). You can check the version in your Lean editor with <code>#eval Lean.versionString</code>.
+  Submission compilation has failed. Make sure your <code>Mathlib</code> version matches the one used by the checker. It is normally the latest stable (currently, v4.29.0). You can check the version in your Lean editor with <code>#eval Lean.versionString</code>.
 </p>
 <h3>Time out</h3>
 <p>
