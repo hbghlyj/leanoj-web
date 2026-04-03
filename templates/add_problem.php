@@ -8,9 +8,12 @@
   <textarea name="template_text" style="white-space: nowrap" rows="4"></textarea>
   <p>Or upload as a file (.lean):</p>
   <input type="file" name="template_file" accept=".lean">
-  <h3>Answer ID</h3>
-  <input type="number" name="answer">
-  <h3>Contest ID</h3>
-  <input type="number" name="contest">
+  <h3>Local Reference File</h3>
+  <select name="answer">
+    <option value="">None</option>
+    <?php foreach ($local_files as $lf): ?>
+      <option value="<?= $lf['id'] ?>"><?= htmlspecialchars(str_replace('/var/www/leanoj/local_files/', '', $lf['path'])) ?></option>
+    <?php endforeach; ?>
+  </select>
   <input style="float: right" type="submit" value="Add Problem">
 </form>

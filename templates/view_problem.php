@@ -1,18 +1,18 @@
 <h2>
   <?= htmlspecialchars($problem['title']) ?>
-  <?php if ($is_admin): ?>
+  <?php if ($user_id): ?>
     <span class="admin-link">
       <a href="index.php?action=edit_problem&id=<?= (int)$problem['id'] ?>">[Edit]</a>
+      <a href="index.php?action=view_history&id=<?= (int)$problem['id'] ?>">[History]</a>
     </span>
-    <?php if ($problem['contest']): ?>
-      <form method="POST" action="index.php?action=toggle_archive" style="display:inline;">
-        <input type="hidden" name="id" value="<?= (int)$problem['id'] ?>">
-        <input type="submit" value=<?= $problem['archived'] ? "Unarchive": "Archive"?>>
-      </form>
-    <?php endif; ?>
+  <?php endif; ?>
+  <?php if ($is_admin || ($user_id && $problem['owner_id'] == $user_id)): ?>
+    <form method="POST" action="index.php?action=delete_problem" style="display:inline;" onsubmit="return confirm('Delete this problem and all its history/submissions?');">
+      <input type="hidden" name="id" value="<?= (int)$problem['id'] ?>">
+      <input type="submit" value="Delete">
+    </form>
   <?php endif; ?>
 </h2>
-<?php if ($can_view): ?>
   <p class="markdown"><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
   <p>
     <em>Replace</em> <code>sorry</code> <em>in the template below with your solution.</em>
@@ -68,6 +68,12 @@
               <?= htmlspecialchars($s['status']) ?>
             </span>
             <a href="index.php?action=status_info">ⓘ</a>
+            <?php if ($is_admin || ($user_id && $s['user'] == $user_id)): ?>
+              <form method="POST" action="index.php?action=delete_submission" style="display:inline;" onsubmit="return confirm('Delete submission?');">
+                <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                <input type="submit" value="x" style="padding: 0 4px; color: red;">
+              </form>
+            <?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -77,6 +83,3 @@
   <?php else: ?>
     <p>None yet.</p>
   <?php endif; ?>
-<?php else: ?>
-  <p>Contest hasn't started.</p>
-<?php endif; ?>

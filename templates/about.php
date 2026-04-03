@@ -1,23 +1,29 @@
-<h2>What is this?</h2>
-<p>
-  <b>Lean Online Judge</b> is an online Math Olympiad platform that makes use of the <a target="_blank" href="https://lean-lang.org/">Lean proof assistant</a>. This means that problems and solutions are written in the formal syntax of Lean, which enables automated solution checking without human intervention. In particular, this makes it possible to host regular online math competitions similar to how it's done in competitive programming on platforms like <a target="_blank" href="https://codeforces.com/">Codeforces</a> and <a target="_blank" href="https://atcoder.jp/">AtCoder</a>.
-</p>
-<p>
-  The goal of the project is to introduce Lean to the Math Olympiad community and make this possibility a reality. A more technical challenge is to develop a specialized Math Olympiad library in Lean via community effort. Currently, Lean's generic mathematics library <a target="_blank" href="https://github.com/leanprover-community/mathlib4">Mathlib</a> is being used.
-</p>
-<p>
-  The platform is under active development but is already usable. See <a href="index.php?action=guide">How to use it?</a> for more information. You can also join the <a target="_blank" href="https://discord.gg/a4xYPXXBxU">Discord server</a> to participate in all related discussions. Details on the Math Olympiad library will be shared later.
-</p>
-<figure style="margin: auto; text-align: center; width: 250px">
-  <img src="logo.jpg" alt="logo" width=250>
-  <figcaption style="font-size: 12px">
-    [LOJ] The logo depicts a person having a moment of enlightenment while solving a Math Olympiad problem.
-  </figcaption>
-</figure>
-<h3>See also</h3>
-<ul>
-<li>
-<a target="_blank" href="https://43.138.56.99:1349/p">Lean4OJ</a>: another online judge utilizing Lean but with a broader focus by <a href="index.php?action=scoreboard">Kitsune</a>.
-<li>
-<a target="_blank" href="https://dwrensha.github.io/compfiles/">Compfiles</a>: <em>Catalog Of Math Problems Formalized In Lean</em>.
-</ul>
+<div class="markdown">
+# User Handbook
+
+Welcome to the **Lean Online Judge**! Here is a quick guide on how to get started reading and submitting formal proofs.
+
+### 1. Find a Problem
+Head over to the **[Problems](index.php?action=view_problems)** page. You will see a list of mathematical challenges translated into Lean 4 theorem signatures. Choose a problem by clicking on its title.
+
+### 2. Understand the Statement
+The problem page displays the informal mathematical statement along with the formal Lean `theorem` signature. Your goal is to write a Lean proof that successfully replaces the `sorry` and satisfies the theorem type.
+
+### 3. Write Your Proof
+You can provide your proof in two ways:
+- **Direct Input:** Paste or type your Lean code directly into the online text editor provided on the problem page.
+- **File Upload:** Upload a `.lean` file containing your solution. 
+
+*Note: Make sure your submission includes all necessary `import` statements (like `import Mathlib`) if you rely on them.*
+
+### 4. Submit and Wait for Judgment
+Once you click submit, your code is placed into a queue. Our backend worker will compile your Lean code using the Lean 4 compiler.
+- **PENDING / PROCESSING:** Your submission is waiting or is currently being verified.
+- **PASSED:** Congratulations! Lean successfully verified your proof without any errors or sorries.
+- **ERROR / TIMEOUT:** Your code failed to compile, contained an unresolved `sorry`, or took too long to verify. You can review the *Compiler Log* directly on your submission's detail page to see why it failed.
+
+### 5. Local Reference Files
+Some problems may depend on custom Lean files rather than standard Mathlib. These background theory files are listed in the **[Local Files](index.php?action=view_local_files)** section. If a problem references a local file, it will be automatically bundled when compiling your submissions. 
+
+Happy proving!
+</div>

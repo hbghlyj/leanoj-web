@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       marked.use(markedKatex({
@@ -101,7 +102,7 @@
       resize: vertical;
     }
     table {
-      table-layout: fixed;
+      table-layout: auto;
       border-collapse: collapse;
       border: 1px solid var(--border);
       margin: 10px 0;
@@ -110,10 +111,6 @@
       border: 1px solid var(--border);
       padding: 2px 12px;
       text-align: left;
-      max-width: 150px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
     th {
       background-color: #eee;
@@ -180,12 +177,11 @@
 <div class="main-container">
   <a href="index.php?action=about" class="logo">Lean Online Judge</a>
   <nav>
-    <a href="index.php?action=about">What is this?</a>
+    <a href="index.php?action=about">User Handbook</a>
+    <a href="index.php?action=view_status">Status</a>
     <a href="index.php?action=view_problems">Problems</a>
-    <a href="index.php?action=view_contests">Contests</a>
     <a href="index.php?action=view_submissions">Submissions</a>
-    <a href="index.php?action=view_answers">Answer Bank</a>
-    <a href="index.php?action=scoreboard">Scoreboard</a>
+    <a href="index.php?action=view_local_files">Local Files</a>
     <?php if (isset($_SESSION['user_id'])): ?>
       <span>
         <strong><?= htmlspecialchars($_SESSION['username']) ?></strong> |
@@ -193,23 +189,12 @@
       </span>
     <?php else: ?>
       <span>
-        <a href="index.php?action=login">Login</a> |
-        <a href="index.php?action=register">Register</a>
+        <a href="/bbs/member.php?mod=logging&action=login">Login</a> |
+        <a href="/bbs/member.php?mod=register">Register</a>
       </span>
     <?php endif; ?>
   </nav>
   <hr>
-
-  <?php if ($is_admin): ?>
-    <form method="POST" action="index.php?action=edit_message">
-      <div style="display: flex; gap: 5px">
-        <input style="flex-grow: 1" type="text" name="message" value="<?= $message ?>">
-        <input type="submit" value="Save">
-      </div>
-    </form>
-  <?php elseif ($message): ?>
-    <div class="message markdown"><?= $message ?></div>
-  <?php endif; ?>
 
   <?php if (isset($_GET['error'])): ?>
     <div class="error"><?= htmlspecialchars($_GET['error']) ?></div>

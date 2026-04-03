@@ -6,6 +6,12 @@
       <input type="submit" value="Rejudge">
     </form>
   <?php endif; ?>
+  <?php if ($is_admin || ($user_id && $submission['user'] == $user_id)): ?>
+    <form method="POST" action="index.php?action=delete_submission" style="display:inline;" onsubmit="return confirm('Delete submission?');">
+      <input type="hidden" name="id" value="<?= (int)$submission['id'] ?>">
+      <input type="submit" value="Delete">
+    </form>
+  <?php endif; ?>
 </h2>
 <table>
   <thead>
@@ -49,4 +55,15 @@
   </div>
 <?php else: ?>
   <p>You have to solve the problem first to view the source code.</p>
+<?php endif; ?>
+
+<?php
+$log_file = __DIR__ . '/../logs/submission_' . (int)$submission['id'] . '.log';
+if (file_exists($log_file) && $submission['status'] !== 'PASSED'):
+    $log_content = file_get_contents($log_file);
+?>
+  <div style="margin-top: 20px;">
+    <h3>Compiler Log</h3>
+    <pre style="background: #f8dbdb; padding: 10px; border: 1px solid #dca7a7; overflow-x: auto;"><?= htmlspecialchars($log_content) ?></pre>
+  </div>
 <?php endif; ?>
