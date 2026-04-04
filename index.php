@@ -354,7 +354,7 @@ if ($action === "view_problems") {
     include 'templates/header.php';
     include 'templates/view_history.php';
     include 'templates/footer.php';
-} elseif ($action === "status_info") {
+} elseif ($action === "view_status") {
     include 'templates/header.php';
     include 'templates/status_info.php';
     include 'templates/footer.php';
