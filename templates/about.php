@@ -18,13 +18,12 @@ You can provide your proof in two ways:
 
 **Tip:** You can use the **[Lean 4 Web Editor](https://live.lean-lang.org/)**, **[AXLE Verify](https://axle.axiommath.ai/verify_proof)**, or **[AXLE Check](https://axle.axiommath.ai/check)** to draft and verify your proof in real-time. You can also use **[AXLE Simplify](https://axle.axiommath.ai/simplify_theorems)** to optimize your theorems before submitting.
 
-### 4. Submit and Wait for Judgment
-Once you click submit, your code is placed into a queue. Our backend worker will compile your Lean code using the Lean 4 compiler.
-- **PENDING / PROCESSING:** Your submission is waiting or is currently being verified.
-- **PASSED:** Congratulations! Lean successfully verified your proof without any errors or sorries.
-- **ERROR / TIMEOUT:** Your code failed to compile, contained an unresolved `sorry`, or took too long to verify. You can review the *Compiler Log* directly on your submission's detail page to see why it failed.
+### 4. Instant Judgment & Archiving
+Lean OJ uses **Instant Verification** powered by the AXLE API. When you click submit:
+- **PASSED:** Congratulations! Lean successfully verified your proof. Your solution is permanently archived in the system and displayed in the submissions list.
+- **ERROR:** Your code failed to verify (e.g., it contains an unresolved `sorry` or a logic error). The compiler log will be displayed to you **immediately** on the problem page. 
 
-*Note: The Lean 4 version used by the checker is v4.28.0 (on AXLE).*
+*Note: In our "Success-Only" model, only successful proofs are stored. Unsuccessful attempts are shown to you for real-time debugging but are not added to the database.*
 
 ### 5. Recursive Dependencies & Libraries
 Lean OJ supports **recursive problem dependencies**:
