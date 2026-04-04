@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/src/DiscuzBridge.php';
-$action = $_GET['action'] ?? "view_problems";
-$template = "templates/view_problems.php"; 
+$action = $_GET['action'] ?? "guide";
+$template = "templates/guide.php"; 
 session_start();
 
 if (isset($_GET['login_dev']) && ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1')) {
@@ -29,7 +29,7 @@ function validate_file($file_key, $max_size = 262144) {
   }
 }
 
-function redirect($action = "view_problems", $params = [], $error = "") {
+function redirect($action = "guide", $params = [], $error = "") {
   $query = $params;
   $query['action'] = $action;
   if ($error) {
