@@ -1,6 +1,6 @@
 <h2>
   Problems 
-  <?php if (($_SESSION['username'] ?? '') === 'admin'): ?>
+  <?php if ($is_admin): ?>
     <span class="admin-link"><a href="index.php?action=add_problem">[Add]</a></span>
   <?php endif; ?>
 </h2>

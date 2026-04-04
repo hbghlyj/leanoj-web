@@ -1,8 +1,20 @@
 <?php
 require_once __DIR__ . '/src/DiscuzBridge.php';
-DiscuzBridge::syncSession();
+session_start();
 
 $action = $_GET['action'] ?? "view_problems";
+
+// Local Development Bypass
+if (isset($_GET['login_dev']) && ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1')) {
+    $_SESSION['user_id'] = 1;
+    $_SESSION['username'] = 'admin';
+    $_SESSION['is_admin'] = true;
+    header("Location: index.php");
+    exit;
+}
+
+DiscuzBridge::syncSession();
+
 $is_admin = (bool)($_SESSION['is_admin'] ?? false);
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 
