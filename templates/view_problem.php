@@ -16,8 +16,11 @@
   <p class="markdown"><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
   <p>
     <em>Replace</em> <code>sorry</code> <em>in the template below with your solution.</em>
-    <?php if ($problem['answer']): ?>
-      <em>See</em> <a href="index.php?action=view_answers">Answer Bank</a> <em>for acceptible answer declarations.</em>
+    <?php if ($problem['dependency_details']): ?>
+      <em>Dependencies:</em>
+      <?php foreach ($problem['dependency_details'] as $dep): ?>
+        <a href="index.php?action=view_local_file_history&id=<?= $dep['id'] ?>"><?= htmlspecialchars(basename($dep['path'])) ?></a> 
+      <?php endforeach; ?>
     <?php endif; ?>
     <em>Mathlib version used by the checker is v4.29.0.</em>
   </p>

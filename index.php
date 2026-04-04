@@ -138,30 +138,31 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $title = trim($_POST['title'] ?? "");
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
-    $answer = (int)$_POST['answer'] ?: null;
-
-    if (!empty($_FILES['template_file']['tmp_name'])) {
-      $err = validate_file('template_file');
-      if ($err) {
-        redirect("add_problem", [], $err);
-      }
-      $template = trim(file_get_contents($_FILES['template_file']['tmp_name']));
+    $deps = array_map('intval', (array)($_POST['dependencies'] ?? []));
+    $deps_json = json_encode($deps);
+    
+    // Fetch dependency contents
+    $prepended_content = "";
+    if (!empty($deps)) {
+        $placeholders = implode(',', array_fill(0, count($deps), '?'));
+        $stmt = $db->prepare("SELECT path FROM local_files WHERE id IN ($placeholders)");
+        $stmt->execute($deps);
+        $files = $stmt->fetchAll();
+        foreach ($files as $f) {
+            $content = @file_get_contents($f['path']);
+            if ($content !== false) {
+                $prepended_content .= $content . "\n";
+            }
+        }
     }
+
     if (empty($title) || empty($statement) || empty($template)) {
       redirect("add_problem", [], "Fill in required fields");
     }
-    if ($answer) {
-       $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from local_files WHERE id = :id)");
-       $stmt->execute([":id" => $answer]);
-       $answer_exists = (bool)$stmt->fetchColumn();
-       if (!$answer_exists) {
-         redirect("add_problem", [], "Answer not found");
-       }
-    }
     
-    // Verify template with AXLE
+    // Verify template with AXLE (with prepended dependencies)
     $res = axle_api_call("check", [
-      "content" => $template,
+      "content" => $prepended_content . $template,
       "environment" => "lean-4.28.0",
       "ignore_imports" => true,
       "timeout_seconds" => 120
@@ -172,13 +173,13 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     }
 
     $stmt = $db->prepare("
-      INSERT INTO problems (title, statement, template, answer, creator_id)
-      VALUES (:title, :statement, :template, :answer, :creator_id)");
+      INSERT INTO problems (title, statement, template, dependencies, creator_id)
+      VALUES (:title, :statement, :template, :dependencies, :creator_id)");
     $stmt->execute([
       ":title" => $title,
       ":statement" => $statement,
       ":template" => $template,
-      ":answer" => $answer,
+      ":dependencies" => $deps_json,
       ":creator_id" => $user_id,
     ]);
     $problem_id = $db->lastInsertId();
@@ -205,9 +206,9 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       redirect("view_problems", [], "Not found");
     }
     
-    $title = $is_admin ? trim($_POST['title'] ?? "") : $problem['title'];
-    $answer = $is_admin ? ((int)$_POST['answer'] ?: null) : $problem['answer'];
-    
+    $deps = array_map('intval', (array)($_POST['dependencies'] ?? []));
+    $deps_json = json_encode($deps);
+
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
     if (empty($title) || empty($statement)) {
@@ -223,18 +224,25 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($template)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    if ($answer) {
-       $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from local_files WHERE id = :id)");
-       $stmt->execute([":id" => $answer]);
-       $answer_exists = (bool)$stmt->fetchColumn();
-       if (!$answer_exists) {
-         redirect("edit_problem", ["id" => $id], "Answer not found");
-       }
+
+    // Fetch dependency contents
+    $prepended_content = "";
+    if (!empty($deps)) {
+        $placeholders = implode(',', array_fill(0, count($deps), '?'));
+        $stmt = $db->prepare("SELECT path FROM local_files WHERE id IN ($placeholders)");
+        $stmt->execute($deps);
+        $files = $stmt->fetchAll();
+        foreach ($files as $f) {
+            $content = @file_get_contents($f['path']);
+            if ($content !== false) {
+                $prepended_content .= $content . "\n";
+            }
+        }
     }
     
-    // Verify template with AXLE
+    // Verify template with AXLE (with prepended dependencies)
     $res = axle_api_call("check", [
-      "content" => $template,
+      "content" => $prepended_content . $template,
       "environment" => "lean-4.28.0",
       "ignore_imports" => true,
       "timeout_seconds" => 120
@@ -247,14 +255,14 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt = $db->prepare("
       UPDATE problems
       SET title = :title, statement = :statement, template = :template,
-        answer = :answer
+        dependencies = :dependencies
       WHERE id = :id");
     $stmt->execute([
       ":id" => $id,
       ":title" => $title,
       ":statement" => $statement,
       ":template" => $template,
-      ":answer" => $answer,
+      ":dependencies" => $deps_json,
     ]);
     
     if ($statement !== $problem['statement'] || $template !== $problem['template']) {
@@ -458,8 +466,16 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     }
 
     // 1. Unlink from problems
-    $stmt = $db->prepare("UPDATE problems SET answer = NULL WHERE answer = :id");
-    $stmt->execute([":id" => $id]);
+    $stmt = $db->query("SELECT id, dependencies FROM problems");
+    $problems = $stmt->fetchAll();
+    foreach ($problems as $p) {
+        $deps = json_decode($p['dependencies'] ?: '[]', true);
+        if (in_array($id, $deps)) {
+            $deps = array_values(array_diff($deps, [$id]));
+            $stmt_upd = $db->prepare("UPDATE problems SET dependencies = :deps WHERE id = :pid");
+            $stmt_upd->execute([':deps' => json_encode($deps), ':pid' => $p['id']]);
+        }
+    }
 
     // 2. Clear history
     $stmt = $db->prepare("DELETE FROM local_file_revisions WHERE local_file_id = :id");
@@ -565,6 +581,16 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
             $s['username'] = $usernames[$s['user']] ?? "Unknown";
         }
     }
+    // Decode dependencies and fetch details
+    $dep_ids = json_decode($problem['dependencies'] ?: '[]', true);
+    $problem['dependency_details'] = [];
+    if (!empty($dep_ids)) {
+        $placeholders = implode(',', array_fill(0, count($dep_ids), '?'));
+        $stmt = $db->prepare("SELECT id, path FROM local_files WHERE id IN ($placeholders)");
+        $stmt->execute($dep_ids);
+        $problem['dependency_details'] = $stmt->fetchAll();
+    }
+
     $can_view = true;
     $template = "templates/view_problem.php";
   }
@@ -687,19 +713,20 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $template = "templates/add_problem.php";
   }
 
-  elseif ($action === "edit_problem" && $user_id) {
+  elseif ($action === "edit_problem") {
+    if (!$user_id) redirect("view_problems", [], "Please login first");
     $id = (int)$_GET['id'];
-    $stmt = $db->prepare("
-      SELECT *
-      FROM problems
-      WHERE id = :id");
+    $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
     $stmt->execute([":id" => $id]);
     $problem = $stmt->fetch();
-    if (!$problem) {
-      redirect("view_problems", [], "Not found");
-    }
+    if (!$problem) redirect("view_problems", [], "Not found");
+    
     $stmt = $db->query("SELECT id, path FROM local_files");
     $local_files = $stmt->fetchAll();
+
+    // Decode dependencies
+    $problem['dependencies'] = json_decode($problem['dependencies'] ?: '[]', true);
+
     $template = "templates/edit_problem.php";
   }
 

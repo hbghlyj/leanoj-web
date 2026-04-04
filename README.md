@@ -38,9 +38,8 @@ CREATE TABLE problems (
     title TEXT NOT NULL,
     statement TEXT NOT NULL,
     template TEXT NOT NULL,
-    answer INTEGER, -- References local_files(id)
-    creator_id INTEGER, -- UID from Discuz!
-    FOREIGN KEY(answer) REFERENCES local_files(id)
+    dependencies TEXT, -- JSON array of local_files(id)
+    creator_id INTEGER -- UID from Discuz!
 );
 
 CREATE TABLE submissions (

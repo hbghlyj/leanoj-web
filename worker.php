@@ -80,10 +80,9 @@ shell_exec("isolate --cg --init");
 while (true) {
   // Check submissions
   $stmt = $db->prepare("
-    SELECT s.*, p.template, p.title, p.answer as local_file_id, lf.path
+    SELECT s.*, p.template, p.title, p.dependencies
     FROM submissions s
     JOIN problems p ON s.problem = p.id
-    LEFT JOIN local_files lf ON p.answer = lf.id
     WHERE s.status = 'PENDING'
     LIMIT 1"
   );
@@ -105,6 +104,21 @@ while (true) {
   }
 
   sleep(1);
+}
+
+function get_dependencies_content($db, $json_ids) {
+  $ids = json_decode($json_ids ?: '[]', true);
+  if (empty($ids)) return "";
+  $content = "";
+  $placeholders = implode(',', array_fill(0, count($ids), '?'));
+  $stmt = $db->prepare("SELECT path FROM local_files WHERE id IN ($placeholders)");
+  $stmt->execute($ids);
+  $files = $stmt->fetchAll();
+  foreach ($files as $f) {
+      $c = @file_get_contents($f['path']);
+      if ($c !== false) $content .= $c . "\n";
+  }
+  return $content;
 }
 
 function process_local_file($db, $lf) {
@@ -177,37 +191,36 @@ function failLocal($db, $id, $msg) {
 
 function process_submission($db, $row) {
   global $checkerFiles, $toolchain, $checkerBins;
-  if (!$row['local_file_id']) {
-    echo "Attempting AXLE API verification...\n";
-    $payload = [
-      "formal_statement" => $row['template'],
-      "content" => $row['source'],
-      "environment" => "lean-4.28.0",
-      "ignore_imports" => true,
-      "timeout_seconds" => 120
-    ];
-    // echo "DEBUG: Payload: " . json_encode($payload, JSON_PRETTY_PRINT) . "\n";
-    $res = axle_api_call("verify_proof", $payload);
-    if ($res && isset($res['okay'])) {
-        echo "AXLE result: " . ($res['okay'] ? "SUCCESS" : "FAILURE") . "\n";
-        if ($res['okay']) {
-            echo "AXLE Success!\n";
-            writeStatus($db, $row['id'], 'PASSED');
-            return;
-        } else {
-            // User requested to throw error if AXLE fails
-            $errors = $res['tool_messages']['errors'] ?? [];
-            if (empty($errors)) $errors = $res['lean_messages']['errors'] ?? ["Unknown API error"];
-            $status_msg = "API Error: " . implode("\n", $errors);
-            failStatus($db, $row['id'], $status_msg, $status_msg); // This writes to DB and LOG FILE
-            echo "AXLE Failure: $status_msg\n";
-            return;
-        }
-    } else {
-       echo "AXLE API error or empty response.\n";
-    }
-    echo "AXLE API unavailable or skipped, falling back to local...\n";
+  
+  $dependency_content = get_dependencies_content($db, $row['dependencies']);
+
+  echo "Attempting AXLE API verification...\n";
+  $payload = [
+    "formal_statement" => $dependency_content . $row['template'],
+    "content" => $dependency_content . $row['source'],
+    "environment" => "lean-4.28.0",
+    "ignore_imports" => true,
+    "timeout_seconds" => 120
+  ];
+  $res = axle_api_call("verify_proof", $payload);
+  if ($res && isset($res['okay'])) {
+      echo "AXLE result: " . ($res['okay'] ? "SUCCESS" : "FAILURE") . "\n";
+      if ($res['okay']) {
+          echo "AXLE Success!\n";
+          writeStatus($db, $row['id'], 'PASSED');
+          return;
+      } else {
+          $errors = $res['tool_messages']['errors'] ?? [];
+          if (empty($errors)) $errors = $res['lean_messages']['errors'] ?? ["Unknown API error"];
+          $status_msg = "API Error: " . implode("\n", $errors);
+          failStatus($db, $row['id'], $status_msg, $status_msg); 
+          echo "AXLE Failure: $status_msg\n";
+          return;
+      }
+  } else {
+     echo "AXLE API error or empty response.\n";
   }
+  echo "AXLE API unavailable or failed, falling back to local...\n";
 
   $status = "";
 
@@ -257,48 +270,6 @@ function process_submission($db, $row) {
       failStatus($db, $row['id'], $status, $out);
       echo "Processed submission #{$row["id"]}: $status\n";
       return;
-    }
-
-    if ($row['local_file_id']) {
-      echo "Checking answer...\n";
-      $answerContent = @file_get_contents($row['path']);
-      if ($answerContent === false) {
-          $status = "System error (Local file missing)";
-          failStatus($db, $row['id'], $status, ["Failed to read " . $row['path']]);
-          echo "Processed submission #{$row["id"]}: $status\n";
-          return;
-      }
-      file_put_contents($checkerFiles . "/CheckerFiles/Answer.lean", $answerContent);
-      $cmd = [
-        "isolate --cg --run --processes=0",
-        "--dir=/lean=" . escapeshellarg($toolchain),
-        "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
-        "--chdir=/checker-files",
-        "-- /lean/bin/lake build CheckerFiles.Answer:olean"
-      ];
-      runCommand($cmd, $out, $err);
-      if ($err) {
-        $status = "System error";
-        failStatus($db, $row['id'], $status, $out);
-        echo "Processed submission #{$row["id"]}: $status\n";
-        return;
-      }
-
-      echo "Checking answer...\n";
-      $cmd = [
-        "isolate --cg --run --processes=0",
-        "--dir=/lean=" . escapeshellarg($toolchain),
-        "--dir=/bin=" . escapeshellarg($checkerBins),
-        "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
-        "--chdir=/checker-files",
-        "-- /lean/bin/lake env /bin/check_answer CheckerFiles.Answer CheckerFiles.Submission"
-      ];
-      runCommand($cmd, $out, $err);
-      if ($err) {
-        $status = "Bad answer";
-        failStatus($db, $row['id'], $status, $out);
-        echo "Processed submission #{$row["id"]}: $status\n";
-      }
     }
 
     echo "Checking declarations...\n";

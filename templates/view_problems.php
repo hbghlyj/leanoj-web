@@ -1,6 +1,6 @@
 <h2>
   Problems 
-  <?php if ($is_admin): ?>
+  <?php if ($user_id): ?>
     <span class="admin-link"><a href="index.php?action=add_problem">[Add]</a></span>
   <?php endif; ?>
 </h2>
