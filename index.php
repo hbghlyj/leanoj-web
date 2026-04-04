@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/src/DiscuzBridge.php';
-session_start();
-
 $action = $_GET['action'] ?? "view_problems";
+$template = "templates/view_problems.php"; // Default template
+session_start();
 
 // Local Development Bypass
 if (isset($_GET['login_dev']) && ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1')) {
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_problem", ["id" => $problem_id]);
   }
 
-  elseif ($action === "add_problem" && $is_admin) {
+  elseif ($action === "add_problem" && $user_id) {
     $title = trim($_POST['title'] ?? "");
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
@@ -151,13 +151,26 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       redirect("add_problem", [], "Fill in required fields");
     }
     if ($answer) {
-      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from local_files WHERE id = :id)");
-      $stmt->execute([":id" => $answer]);
-      $answer_exists = (bool)$stmt->fetchColumn();
-      if (!$answer_exists) {
-        redirect("add_problem", [], "Answer not found");
-      }
+       $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from local_files WHERE id = :id)");
+       $stmt->execute([":id" => $answer]);
+       $answer_exists = (bool)$stmt->fetchColumn();
+       if (!$answer_exists) {
+         redirect("add_problem", [], "Answer not found");
+       }
     }
+    
+    // Verify template with AXLE
+    $res = axle_api_call("check", [
+      "content" => $template,
+      "environment" => "lean-4.28.0",
+      "ignore_imports" => true,
+      "timeout_seconds" => 120
+    ]);
+    if ($res && isset($res['okay']) && !$res['okay']) {
+      $errors = $res['lean_messages']['errors'] ?? ["Invalid Lean template (API Error)"];
+      redirect("add_problem", [], "Template Error: " . implode("\n", $errors));
+    }
+
     $stmt = $db->prepare("
       INSERT INTO problems (title, statement, template, answer, creator_id)
       VALUES (:title, :statement, :template, :answer, :creator_id)");
@@ -211,13 +224,26 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
     if ($answer) {
-      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from local_files WHERE id = :id)");
-      $stmt->execute([":id" => $answer]);
-      $answer_exists = (bool)$stmt->fetchColumn();
-      if (!$answer_exists) {
-        redirect("edit_problem", ["id" => $id], "Answer not found");
-      }
+       $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from local_files WHERE id = :id)");
+       $stmt->execute([":id" => $answer]);
+       $answer_exists = (bool)$stmt->fetchColumn();
+       if (!$answer_exists) {
+         redirect("edit_problem", ["id" => $id], "Answer not found");
+       }
     }
+    
+    // Verify template with AXLE
+    $res = axle_api_call("check", [
+      "content" => $template,
+      "environment" => "lean-4.28.0",
+      "ignore_imports" => true,
+      "timeout_seconds" => 120
+    ]);
+    if ($res && isset($res['okay']) && !$res['okay']) {
+      $errors = $res['lean_messages']['errors'] ?? ["Invalid Lean template (API Error)"];
+      redirect("edit_problem", ["id" => $id], "Template Error: " . implode("\n", $errors));
+    }
+
     $stmt = $db->prepare("
       UPDATE problems
       SET title = :title, statement = :statement, template = :template,
@@ -654,7 +680,8 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   }
 
 
-  elseif ($action === "add_problem" && $is_admin) {
+  elseif ($action === "add_problem") {
+    if (!$user_id) redirect("view_problems", [], "Please login first");
     $stmt = $db->query("SELECT id, path FROM local_files");
     $local_files = $stmt->fetchAll();
     $template = "templates/add_problem.php";
@@ -822,7 +849,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   }
 
   include "templates/header.php";
-  include $template;
+  if (isset($template) && file_exists(__DIR__ . '/' . $template)) {
+    include $template;
+  } else {
+    echo "<p>Page not found.</p>";
+  }
   include "templates/footer.php";
 }
 ?>
