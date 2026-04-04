@@ -62,12 +62,7 @@ function axle_api_call($tool, $payload) {
   return json_decode($response, true);
 }
 
-$_env = parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
-$_dbPath = $_env['DB_PATH'] ?? 'db.sqlite';
-if (!str_starts_with($_dbPath, '/') && !preg_match('/^[A-Za-z]:/', $_dbPath)) {
-    $_dbPath = __DIR__ . '/' . $_dbPath;
-}
-$db = new PDO("sqlite:" . $_dbPath);
+$db = new PDO("sqlite:" . __DIR__ . "/db.sqlite");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
