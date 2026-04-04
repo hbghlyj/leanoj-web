@@ -8,7 +8,7 @@
     <b><?= htmlspecialchars($problem['title']) ?></b>
   <?php endif; ?>
   <h3>Statement</h3>
-  <textarea rows="4" name="statement" required><?= htmlspecialchars($problem['statement']) ?></textarea>
+  <textarea rows="4" name="statement"><?= htmlspecialchars($problem['statement']) ?></textarea>
   <h3>Template</h3>
   <textarea name="template_text" style="white-space: nowrap" rows="4"><?= htmlspecialchars($problem['template']) ?></textarea>
   <p>Or upload as a file (.lean)</p>

@@ -3,7 +3,7 @@
   <h3>Title</h3>
   <input type="text" name="title" required>
   <h3>Statement</h3>
-  <textarea rows="4" name="statement" required></textarea>
+  <textarea rows="4" name="statement"></textarea>
   <h3>Template</h3>
   <textarea name="template_text" style="white-space: nowrap" rows="4"></textarea>
   <p>Or upload as a file (.lean):</p>

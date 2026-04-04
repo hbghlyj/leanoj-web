@@ -30,16 +30,22 @@
   </div>
   <h3>Submit Solution</h3>
   <?php if ($user_id): ?>
-    <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
-      <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
-      <div>
-      <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."></textarea>
-      </div>
-    <p>Or upload as a file (.lean):</p>
-    <input type="file" name="source_file" accept=".lean">
-    &nbsp;
-    <input type="submit" value="Submit">
-    </form>
+    <?php if (!empty($problem['template'])): ?>
+      <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
+        <div>
+        <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."></textarea>
+        </div>
+      <p>Or upload as a file (.lean):</p>
+      <input type="file" name="source_file" accept=".lean">
+      &nbsp;
+      <input type="submit" value="Submit">
+      </form>
+    <?php else: ?>
+      <p class="warning-box" style="color: #d9534f; background: #f9f2f2; padding: 10px; border-left: 5px solid #d9534f;">
+        <strong>Submissions Disabled:</strong> A Lean 4 template is required to enable submissions for this problem.
+      </p>
+    <?php endif; ?>
   <?php else: ?>
     <p><a href="index.php?action=login">Login</a> to submit a solution.</p>
   <?php endif; ?>
