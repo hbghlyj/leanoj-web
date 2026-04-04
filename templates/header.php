@@ -211,5 +211,5 @@
     <hr>
 
     <?php if (isset($_GET['error'])): ?>
-      <div class="error"><?= htmlspecialchars($_GET['error']) ?></div>
+      <div class="error"><?= nl2br(htmlspecialchars($_GET['error'])) ?></div>
     <?php endif; ?>

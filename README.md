@@ -42,7 +42,6 @@ CREATE TABLE problem_revisions (
 ## Setup & Environment
 1.  Configure `.env`:
     ```
-    AXLE_API_KEY=your_key_here
     DB_PATH=db.sqlite
     ```
 2.  Ensure `www-data` has write access to `db.sqlite`.

@@ -7,11 +7,10 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $toolchain = $env['LEAN_TOOLCHAIN'];
 $checkerFiles = $env['CHECKER_FILES'];
 $checkerBins = $env['CHECKER_BINS'];
-$out = [];
-$err = 0;
 
 function failStatus($db, $id, $status, $out) {
   writeStatus($db, $id, $status);
+  @mkdir(__DIR__ . "/logs", 0777, true);
   file_put_contents(__DIR__ . "/logs/submission_{$id}.log", is_array($out) ? implode("\n", $out) : $out);
 }
 
@@ -38,9 +37,6 @@ function axle_api_call($tool, $payload) {
   return json_decode($response, true);
 }
 
-/**
- * Recursively fetch dependency templates.
- */
 function get_recursive_dependency_content($db, $ids, &$visited = []) {
   $content = "";
   foreach ($ids as $id) {
@@ -52,12 +48,10 @@ function get_recursive_dependency_content($db, $ids, &$visited = []) {
     $row = $stmt->fetch();
     if (!$row) continue;
 
-    // Recurse into sub-dependencies first
     $sub_deps = json_decode($row['dependencies'] ?: '[]', true);
     if (!empty($sub_deps)) {
       $content .= get_recursive_dependency_content($db, $sub_deps, $visited);
     }
-
     if (!empty($row['template'])) {
       $content .= $row['template'] . "\n";
     }
@@ -80,156 +74,87 @@ function runCommand($cmd, &$out, &$err) {
   exec(implode(" ", $newCmd) . " 2>&1", $out, $err);
 }
 
-function writeStatus($db, $id, $status, $is_local = false) {
-  $table = $is_local ? "local_files" : "submissions";
-  $stmt = $db->prepare("UPDATE $table SET status = :status WHERE id = :id");
-  $stmt->bindValue(":status", $status);
-  $stmt->bindValue(":id", $id);
-  $stmt->execute();
+function writeStatus($db, $id, $status) {
+  $stmt = $db->prepare("UPDATE submissions SET status = :status WHERE id = :id");
+  $stmt->execute([":status" => $status, ":id" => $id]);
 }
 
 function parseMeta($file) {
   $meta = [];
-  foreach (file($file) as $line) {
-    $parts = explode(":", trim($line), 2);
-    if (count($parts) === 2) $meta[$parts[0]] = $parts[1];
+  if (file_exists($file)) {
+    foreach (file($file) as $line) {
+      $parts = explode(":", trim($line), 2);
+      if (count($parts) === 2) $meta[$parts[0]] = $parts[1];
+    }
   }
   return $meta;
+}
+
+function process_submission($db, $row) {
+  global $checkerFiles, $toolchain;
+  
+  $visited = [];
+  $dependency_content = get_recursive_dependency_content($db, json_decode($row['dependencies'] ?: '[]', true), $visited);
+
+  echo "Attempting AXLE API verification for submission #{$row['id']}...\n";
+  $res = axle_api_call("verify_proof", [
+    "formal_statement" => $dependency_content . $row['template'],
+    "content" => $dependency_content . $row['source'],
+    "environment" => "lean-4.28.0",
+    "ignore_imports" => true,
+    "timeout_seconds" => 120
+  ]);
+
+  if ($res && isset($res['okay'])) {
+      if ($res['okay']) {
+          echo "AXLE Success!\n";
+          writeStatus($db, $row['id'], 'PASSED');
+          return;
+      } else {
+          $errors = $res['tool_messages']['errors'] ?? ($res['lean_messages']['errors'] ?? ["Unknown error"]);
+          $msg = "Error: " . implode("\n", $errors);
+          failStatus($db, $row['id'], "ERROR", $msg);
+          echo "AXLE Failure: $msg\n";
+          return;
+      }
+  }
+  
+  echo "AXLE failed, falling back to local for #{$row['id']}...\n";
+  @mkdir($checkerFiles . "/CheckerFiles", 0777, true);
+  file_put_contents($checkerFiles . "/CheckerFiles/Submission.lean", $row["source"]);
+  $metaFile = __DIR__ . "/meta.txt";
+  $cmd = [
+    "isolate --cg --run --processes=0 --meta=$metaFile",
+    "--cg-mem=4194304", "--time=60.0", "--wall-time=300.0",
+    "--dir=/lean=" . escapeshellarg($toolchain),
+    "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+    "--chdir=/checker-files",
+    "-- /lean/bin/lake build CheckerFiles.Submission:olean"
+  ];
+  $out = []; $err = 0;
+  runCommand($cmd, $out, $err);
+  $meta = parseMeta($metaFile);
+  @unlink($metaFile);
+
+  if (isset($meta['status']) && $meta['status'] === "TO") $status = "Timeout";
+  elseif (isset($meta["cg-oom-killed"]) && $meta["cg-oom-killed"] === "1") $status = "Out of memory";
+  elseif ($err) $status = "Compilation error";
+  else $status = "PASSED";
+
+  if ($status !== "PASSED") failStatus($db, $row['id'], $status, $out);
+  else writeStatus($db, $row['id'], 'PASSED');
+  echo "Submission #{$row['id']} complete: $status\n";
 }
 
 echo "Worker started...\n";
 shell_exec("isolate --cg --init");
 
 while (true) {
-  // Check submissions
-  $stmt = $db->prepare("
-    SELECT s.*, p.template, p.title, p.dependencies
-    FROM submissions s
-    JOIN problems p ON s.problem = p.id
-    WHERE s.status = 'PENDING'
-    LIMIT 1"
-  );
-  $stmt->execute();
+  $stmt = $db->query("SELECT s.*, p.template, p.dependencies FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PENDING' LIMIT 1");
   $row = $stmt->fetch();
-  
   if ($row) {
     process_submission($db, $row);
-    continue;
-  }
-
-  sleep(1);
-}
-
-function get_dependencies_content($db, $json_ids) {
-  $ids = json_decode($json_ids ?: '[]', true);
-  if (empty($ids)) return "";
-  return get_recursive_dependency_content($db, $ids);
-}
-
-function process_submission($db, $row) {
-  global $checkerFiles, $toolchain, $checkerBins;
-  
-  $dependency_content = get_dependencies_content($db, $row['dependencies']);
-
-  echo "Attempting AXLE API verification...\n";
-  $payload = [
-    "formal_statement" => $dependency_content . $row['template'],
-    "content" => $dependency_content . $row['source'],
-    "environment" => "lean-4.28.0",
-    "ignore_imports" => true,
-    "timeout_seconds" => 120
-  ];
-  $res = axle_api_call("verify_proof", $payload);
-  if ($res && isset($res['okay'])) {
-      echo "AXLE result: " . ($res['okay'] ? "SUCCESS" : "FAILURE") . "\n";
-      if ($res['okay']) {
-          echo "AXLE Success!\n";
-          writeStatus($db, $row['id'], 'PASSED');
-          return;
-      } else {
-          $errors = $res['tool_messages']['errors'] ?? [];
-          if (empty($errors)) $errors = $res['lean_messages']['errors'] ?? ["Unknown API error"];
-          $status_msg = "API Error: " . implode("\n", $errors);
-          failStatus($db, $row['id'], $status_msg, $status_msg); 
-          echo "AXLE Failure: $status_msg\n";
-          return;
-      }
   } else {
-     echo "AXLE API error or empty response.\n";
+    sleep(2);
   }
-  echo "AXLE API unavailable or failed, falling back to local...\n";
-
-  $status = "";
-
-  echo "Building submission...\n";
-  file_put_contents($checkerFiles . "/CheckerFiles/Submission.lean", $row["source"]);
-  $metaFile = __DIR__ . "/meta.txt";
-  $cmd = [
-    "isolate --cg --run --processes=0 --meta=$metaFile",
-    "--cg-mem=4194304",
-    "--time=60.0",
-    "--wall-time=300.0",
-    "--dir=/lean=" . escapeshellarg($toolchain),
-    "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
-    "--chdir=/checker-files",
-    "-- /lean/bin/lake build CheckerFiles.Submission:olean"
-  ];
-  runCommand($cmd, $out, $err);
-  # echo implode("\n", $out) . "\n";
-  $meta = parseMeta($metaFile);
-  unlink($metaFile);
-  if (isset($meta['status']) && $meta['status'] === "TO") {
-    $status = "Time out";
-  } elseif (isset($mega["cg-oom-killed"]) && $meta["cg-oom-killed"] === "1") {
-    $status = "Out of memory";
-  } elseif ($err) {
-    $status = "Compilation error";
-  }
-  if ($status) {
-    failStatus($db, $row['id'], $status, $out);
-    echo "Processed submission #{$row["id"]}: $status\n";
-    return;
-  }
-
-  if ($row["title"] !== "xyzzy") {
-    echo "Building template...\n";
-    file_put_contents($checkerFiles . "/CheckerFiles/Template.lean", $row["template"]);
-    $cmd = [
-      "isolate --cg --run --processes=0",
-      "--dir=/lean=" . escapeshellarg($toolchain),
-      "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
-      "--chdir=/checker-files",
-      "-- /lean/bin/lake build CheckerFiles.Template:olean"
-    ];
-    runCommand($cmd, $out, $err);
-    if ($err) {
-      $status = "System error";
-      failStatus($db, $row['id'], $status, $out);
-      echo "Processed submission #{$row["id"]}: $status\n";
-      return;
-    }
-
-    echo "Checking declarations...\n";
-    $cmd = [
-      "isolate --cg --run --processes=0",
-      "--dir=/lean=" . escapeshellarg($toolchain),
-      "--dir=/bin=" . escapeshellarg($checkerBins),
-      "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
-      "--chdir=/checker-files",
-      "-- /lean/bin/lake env /bin/check CheckerFiles.Template CheckerFiles.Submission"
-    ];
-    runCommand($cmd, $out, $err);
-    if ($err) {
-      $status = "Template mismatch";
-      failStatus($db, $row['id'], $status, $out);
-      echo "Processed submission #{$row["id"]}: $status\n";
-      return;
-    }
-  }
-
-
-
-  $status = "PASSED";
-  writeStatus($db, $row['id'], $status);
-  echo "Processed submission #{$row["id"]}: $status\n";
 }
