@@ -13,7 +13,7 @@
     </form>
   <?php endif; ?>
 </h2>
-  <p class="markdown"><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
+<div class="markdown"><?= htmlspecialchars($problem['statement']) ?></div>
   <p>
     <em>Replace</em> <code>sorry</code> <em>in the template below with your solution.</em>
     <?php if ($problem['dependency_details']): ?>

@@ -65,15 +65,6 @@
       background-color: white;
     }
 
-    .logo {
-      font-size: 2.0rem;
-      line-height: 1.6em;
-      font-weight: 800;
-      color: var(--primary);
-      text-decoration: none;
-      letter-spacing: -0.5px;
-    }
-
     nav {
       display: flex;
       justify-content: space-between;
@@ -200,7 +191,6 @@
 
 <body>
   <div class="main-container">
-    <a href="index.php?action=about" class="logo">Lean Online Judge</a>
     <nav>
       <a href="index.php?action=about">Guide</a>
       <a href="index.php?action=view_status">Status</a>

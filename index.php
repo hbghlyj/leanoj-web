@@ -41,9 +41,6 @@ function redirect($action = "view_problems", $params = [], $error = "") {
 }
 
 function axle_api_call($tool, $payload) {
-  $env = parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
-  $apiKey = $env['AXLE_API_KEY'] ?? '';
-  
   $ch = curl_init("https://axle.axiommath.ai/api/v1/" . $tool);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($ch, CURLOPT_POST, true);
@@ -51,7 +48,6 @@ function axle_api_call($tool, $payload) {
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
     'Accept: application/json',
-    'Authorization: Bearer ' . $apiKey,
     'User-Agent: Leanoj-Web/1.0'
   ]);
   curl_setopt($ch, CURLOPT_TIMEOUT, 120);
