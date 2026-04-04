@@ -475,9 +475,9 @@ if ($action === "view_problems") {
     include 'templates/header.php';
     include 'templates/status_info.php';
     include 'templates/footer.php';
-} elseif ($action === "about") {
+} elseif ($action === "guide") {
     include 'templates/header.php';
-    include 'templates/about.php';
+    include 'templates/guide.php';
     include 'templates/footer.php';
 } else {
     redirect("view_problems");
