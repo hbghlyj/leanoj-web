@@ -57,13 +57,9 @@
   <p>You have to solve the problem first to view the source code.</p>
 <?php endif; ?>
 
-<?php
-$log_file = __DIR__ . '/../logs/submission_' . (int)$submission['id'] . '.log';
-if (file_exists($log_file) && $submission['status'] !== 'PASSED'):
-    $log_content = file_get_contents($log_file);
-?>
+<?php if (isset($log) && !empty($log) && $submission['status'] !== 'PASSED'): ?>
   <div style="margin-top: 20px;">
     <h3>Compiler Log</h3>
-    <pre style="background: #f8dbdb; padding: 10px; border: 1px solid #dca7a7; overflow-x: auto;"><?= htmlspecialchars($log_content) ?></pre>
+    <pre style="background: #f8dbdb; padding: 10px; border: 1px solid #dca7a7; overflow-x: auto;"><?= htmlspecialchars($log) ?></pre>
   </div>
 <?php endif; ?>

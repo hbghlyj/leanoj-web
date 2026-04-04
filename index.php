@@ -360,7 +360,7 @@ if ($action === "view_problems") {
     include 'templates/footer.php';
 } elseif ($action === "view_submission") {
     $id = (int)($_GET['id'] ?? 0);
-    $stmt = $db->prepare("SELECT s.*, p.title as problem_title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.id = ?");
+    $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.id = ?");
     $stmt->execute([$id]);
     $submission = $stmt->fetch();
     if (!$submission) redirect("view_submissions");
