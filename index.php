@@ -66,22 +66,6 @@ $db = new PDO("sqlite:" . __DIR__ . "/db.sqlite");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-function separate_imports($content) {
-  $lines = explode("\n", str_replace("\r", "", $content));
-  $imports = [];
-  $body = [];
-  foreach ($lines as $line) {
-    $trimmed = trim($line);
-    if ($trimmed === "") continue;
-    if (strpos($trimmed, "import") === 0) {
-      $imports[] = $line;
-    } else {
-      $body[] = $line;
-    }
-  }
-  return ["imports" => implode("\n", $imports), "body" => implode("\n", $body)];
-}
-
 function get_recursive_dependency_content($db, $ids, &$visited = []) {
   $content = "";
   foreach ($ids as $id) {
@@ -115,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $time = date("Y-m-d\TH:i", time());
     $source_code = trim($_POST['source_text'] ?? "");
 
-    $stmt = $db->prepare("SELECT template FROM problems WHERE id = :id");
+    $stmt = $db->prepare("SELECT template, dependencies FROM problems WHERE id = :id");
     $stmt->execute([":id" => $problem_id]);
     $prob = $stmt->fetch();
     if (!$prob || empty($prob['template'])) {
@@ -128,9 +112,44 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     }
     if (empty($source_code)) redirect("view_problem", ["id" => $problem_id], "Solution empty");
     
-    $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, status, time) VALUES (:problem, :user, :source, 'PENDING', :time)");
-    $stmt->execute([":problem" => $problem_id, ":user" => $user_id, ":source" => $source_code, ":time" => $time]);
-    redirect("view_problem", ["id" => $problem_id]);
+    // INSTANT VERIFICATION via AXLE
+    $visited = [];
+    $dependency_content = get_recursive_dependency_content($db, json_decode($prob['dependencies'] ?: '[]', true), $visited);
+    
+    $res = axle_api_call("verify_proof", [
+      "formal_statement" => $dependency_content . $prob['template'],
+      "content" => $dependency_content . $source_code,
+      "environment" => "lean-4.28.0",
+      "ignore_imports" => true,
+      "timeout_seconds" => 120
+    ]);
+
+    $status = 'SYSTEM ERROR';
+    $log = 'AXLE API verification failed or timed out.';
+
+    if ($res && isset($res['okay'])) {
+        if ($res['okay']) {
+            $status = 'PASSED';
+            $log = null;
+        } else {
+            $status = 'ERROR';
+            $errors = $res['tool_messages']['errors'] ?? ($res['lean_messages']['errors'] ?? ["Unknown error"]);
+            $log = implode("\n", $errors);
+        }
+    }
+
+    $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, status, time, log) VALUES (:problem, :user, :source, :status, :time, :log)");
+    $stmt->execute([
+        ":problem" => $problem_id, 
+        ":user" => $user_id, 
+        ":source" => $source_code, 
+        ":status" => $status, 
+        ":time" => $time,
+        ":log" => $log
+    ]);
+    
+    $submission_id = $db->lastInsertId();
+    redirect("view_submission", ["id" => $submission_id]);
   }
 
   elseif ($action === "add_problem" && $user_id) {
@@ -236,7 +255,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_submissions", ["id" => $sub['problem']]);
   }
 
-  // RECOVERED: ROLLBACK REVISION
   elseif ($action === "rollback_revision" && $user_id) {
     $rev_id = (int)$_POST['rev_id'] ?: null;
     $stmt = $db->prepare("SELECT * FROM problem_revisions WHERE id = :rev_id");
@@ -269,7 +287,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_history", ["id" => $prob_id]);
   }
 
-  // RECOVERED: DELETE REVISION
   elseif ($action === "delete_revision" && $is_admin) {
     $rev_id = (int)$_POST['rev_id'] ?: null;
     $prob_id = (int)$_POST['prob_id'] ?: null;
@@ -349,7 +366,6 @@ if ($action === "view_problems") {
       $problem['dependency_details'] = $stmt->fetchAll();
     }
     
-    //    // RECENT SUBMISSIONS
     $stmt = $db->prepare("SELECT COUNT(*) FROM submissions WHERE problem = ?");
     $stmt->execute([$id]);
     $total_submissions_count = $stmt->fetchColumn();
@@ -358,7 +374,6 @@ if ($action === "view_problems") {
     $stmt->execute([$id]);
     $recent_submissions = $stmt->fetchAll();
     
-    // RESOLVE USERNAMES VIA DISCUZ
     $uids = array_unique(array_column($recent_submissions, 'user'));
     $usernames = DiscuzBridge::getUsernames($uids);
     foreach ($recent_submissions as &$sub) {
@@ -380,7 +395,6 @@ if ($action === "view_problems") {
     }
     $submissions = $stmt->fetchAll();
     
-    // RESOLVE USERNAMES VIA DISCUZ
     $uids = array_unique(array_column($submissions, 'user'));
     $usernames = DiscuzBridge::getUsernames($uids);
     foreach ($submissions as &$sub) {
@@ -398,7 +412,6 @@ if ($action === "view_problems") {
     $submission = $stmt->fetch();
     if (!$submission) redirect("view_submissions");
 
-    // RESOLVE USERNAME VIA DISCUZ
     $usernames = DiscuzBridge::getUsernames([$submission['user']]);
     $submission['username'] = $usernames[$submission['user']] ?? "UID: " . $submission['user'];
 
@@ -412,7 +425,6 @@ if ($action === "view_problems") {
     $stmt->execute([$id]);
     $revisions = $stmt->fetchAll();
 
-    // RESOLVE USERNAMES VIA DISCUZ
     $uids = array_unique(array_column($revisions, 'user_id'));
     $usernames = DiscuzBridge::getUsernames($uids);
     foreach ($revisions as &$rev) {
@@ -470,17 +482,7 @@ if ($action === "view_problems") {
     include 'templates/compare_revision.php';
     include 'templates/footer.php';
 } elseif ($action === "view_status") {
-    $stmt = $db->query("SELECT COUNT(*) FROM submissions WHERE status = 'PENDING'");
-    $pending_count = $stmt->fetchColumn();
-
-    $stmt = $db->query("SELECT s.*, p.title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PROCESSING' LIMIT 1");
-    $active_job = $stmt->fetch();
-    if ($active_job) {
-        $usernames = DiscuzBridge::getUsernames([$active_job['user']]);
-        $active_job['username'] = $usernames[$active_job['user']] ?? "Unknown";
-    }
-
-    $stmt = $db->query("SELECT s.*, p.title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status NOT IN ('PENDING', 'PROCESSING') ORDER BY s.id DESC LIMIT 10");
+    $stmt = $db->query("SELECT s.*, p.title FROM submissions s JOIN problems p ON s.problem = p.id ORDER BY s.id DESC LIMIT 10");
     $recent_jobs = $stmt->fetchAll();
     $uids = array_unique(array_column($recent_jobs, 'user'));
     $usernames = DiscuzBridge::getUsernames($uids);
