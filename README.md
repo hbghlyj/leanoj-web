@@ -17,10 +17,18 @@ The system operates as a set of interconnected services on the Linux server:
 The application uses a centered SQLite database. The current schema is as follows:
 
 ```sql
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+);
+
 CREATE TABLE local_files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     path TEXT UNIQUE NOT NULL, -- Restricted to /var/www/leanoj/local_files/
-    creator_id INTEGER NOT NULL REFERENCES users(id)
+    creator_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'PASSED',
+    log TEXT
 );
 
 CREATE TABLE local_file_revisions (
