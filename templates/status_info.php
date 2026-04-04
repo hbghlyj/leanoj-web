@@ -23,10 +23,6 @@
 <p>
   Submission compilation took more memory than the predefined limit.
 </p>
-<h3>Dependency Mismatch</h3>
-<p>
-  The provided solution does not match one of the required dependencies for this problem. Make sure you are using declarations from the <a href="index.php?action=view_local_files">Dependency Library</a>.
-</p>
 <h3>Template mismatch</h3>
 <p>
   Some declarations in the template are missing or do not match those in the submission. Extra declarations are allowed.
