@@ -23,9 +23,9 @@
 <p>
   Submission compilation took more memory than the predefined limit.
 </p>
-<h3>Bad answer</h3>
+<h3>Dependency Mismatch</h3>
 <p>
-  The provided answer does not match one set for this problem. Make sure you are using one from the <a href="index.php?action=view_answers">Answer Bank</a>.
+  The provided solution does not match one of the required dependencies for this problem. Make sure you are using declarations from the <a href="index.php?action=view_local_files">Dependency Library</a>.
 </p>
 <h3>Template mismatch</h3>
 <p>
