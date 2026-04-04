@@ -281,8 +281,36 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
 $error = $_GET['error'] ?? null;
 if ($action === "view_problems") {
-    $stmt = $db->query("SELECT p.*, (SELECT COUNT(*) FROM submissions s WHERE s.problem = p.id AND s.status = 'PASSED') as solves FROM problems p ORDER BY p.id DESC");
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    
+    $stmt = $db->query("SELECT COUNT(*) FROM problems");
+    $total_problems = $stmt->fetchColumn();
+    $total_pages = ceil($total_problems / $per_page);
+
+    $stmt = $db->prepare("
+      SELECT p.*,
+        (SELECT COUNT(DISTINCT user) FROM submissions
+          WHERE problem = p.id AND status = 'PASSED') as solves
+      FROM problems p
+      ORDER BY p.id DESC
+      LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
     $problems = $stmt->fetchAll();
+
+    foreach ($problems as &$p) {
+        $p['is_solved'] = false;
+        if ($user_id) {
+            $checkStmt = $db->prepare("SELECT 1 FROM submissions WHERE problem = :pid AND user = :uid AND status = 'PASSED' LIMIT 1");
+            $checkStmt->execute([":pid" => $p['id'], ":uid" => $user_id]);
+            $p['is_solved'] = (bool)$checkStmt->fetchColumn();
+        }
+    }
+    unset($p);
+
     include 'templates/header.php';
     include 'templates/view_problems.php';
     include 'templates/footer.php';
