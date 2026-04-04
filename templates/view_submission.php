@@ -48,14 +48,10 @@
     </tr>
   </tbody>
 </table>
-<?php if ($show_source): ?>
-  <div class="code-container">
-    <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
-    <pre><?= htmlspecialchars($submission['source']) ?></pre>
-  </div>
-<?php else: ?>
-  <p>You have to solve the problem first to view the source code.</p>
-<?php endif; ?>
+<div class="code-container">
+  <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
+  <pre><?= htmlspecialchars($submission['source']) ?></pre>
+</div>
 
 <?php if (isset($log) && !empty($log) && $submission['status'] !== 'PASSED'): ?>
   <div style="margin-top: 20px;">

@@ -398,14 +398,6 @@ if ($action === "view_problems") {
     $usernames = DiscuzBridge::getUsernames([$submission['user']]);
     $submission['username'] = $usernames[$submission['user']] ?? "UID: " . $submission['user'];
 
-    $is_solved = false;
-    if ($user_id) {
-        $checkStmt = $db->prepare("SELECT 1 FROM submissions WHERE problem = :pid AND user = :uid AND status = 'PASSED' LIMIT 1");
-        $checkStmt->execute([":pid" => $submission['problem'], ":uid" => $user_id]);
-        $is_solved = (bool)$checkStmt->fetchColumn();
-    }
-    $show_source = $is_admin || $is_solved || ($user_id && $submission['user'] == $user_id);
-
     $log = $submission['log'] ?? "No log available.";
     include 'templates/header.php';
     include 'templates/view_submission.php';
