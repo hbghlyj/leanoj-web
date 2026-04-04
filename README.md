@@ -7,6 +7,8 @@ A lightweight online judge for Lean 4 theorem proving.
 -   **AXLE API Support**: Offloads computationally expensive verification to the AXLE infrastructure.
 -   **Recursive Dependencies**: Problems can depend on other problems. Theorems from dependency problems are automatically prepended to the current problem's context.
 -   **Discuz! Integration**: Built-in bridge for authentication with Discuz! forums.
+-   **Zero-Dependency Server**: Unlike the original `leanoj-web`, this version **does not require** a local Lean 4 or Mathlib 4 installation on your server.
+-   **Optimized Performance**: By offloading verification to the **AXLE API**, theorem checking is significantly faster and more stable than a local server-side setup.
 
 ## Database Schema (SQLite)
 
