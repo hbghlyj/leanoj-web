@@ -1,5 +1,5 @@
 <div class="markdown">
-# User Handbook
+# Guide
 
 Welcome to the **Lean Online Judge**! Here is a quick guide on how to get started reading and submitting formal proofs.
 

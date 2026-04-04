@@ -202,7 +202,7 @@
   <div class="main-container">
     <a href="index.php?action=about" class="logo">Lean Online Judge</a>
     <nav>
-      <a href="index.php?action=about">User Handbook</a>
+      <a href="index.php?action=about">Guide</a>
       <a href="index.php?action=view_status">Status</a>
       <a href="index.php?action=view_problems">Problems</a>
       <a href="index.php?action=view_submissions">Submissions</a>
