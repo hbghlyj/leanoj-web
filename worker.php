@@ -4,10 +4,8 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
 function failStatus($db, $id, $status, $out) {
-  $stmt = $db->prepare("UPDATE submissions SET status = :status WHERE id = :id");
-  $stmt->execute([":status" => $status, ":id" => $id]);
-  @mkdir(__DIR__ . "/logs", 0777, true);
-  file_put_contents(__DIR__ . "/logs/submission_{$id}.log", is_array($out) ? implode("\n", $out) : $out);
+  $stmt = $db->prepare("UPDATE submissions SET log = :log, status = :status WHERE id = :id");
+  $stmt->execute([":log" => is_array($out) ? implode("\n", $out) : $out, ":status" => $status, ":id" => $id]);
 }
 
 function axle_api_call($tool, $payload) {

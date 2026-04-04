@@ -369,8 +369,7 @@ if ($action === "view_problems") {
     $usernames = DiscuzBridge::getUsernames([$submission['user']]);
     $submission['username'] = $usernames[$submission['user']] ?? "UID: " . $submission['user'];
 
-    $log_path = __DIR__ . "/logs/submission_{$id}.log";
-    $log = file_exists($log_path) ? file_get_contents($log_path) : "No log available.";
+    $log = $submission['log'] ?? "No log available.";
     include 'templates/header.php';
     include 'templates/view_submission.php';
     include 'templates/footer.php';

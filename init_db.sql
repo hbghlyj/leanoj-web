@@ -18,7 +18,8 @@ CREATE TABLE submissions (
     user INTEGER NOT NULL,
     source TEXT NOT NULL,
     status TEXT NOT NULL,
-    time TEXT NOT NULL
+    time TEXT NOT NULL,
+    log TEXT
 );
 
 CREATE TABLE problem_revisions (
