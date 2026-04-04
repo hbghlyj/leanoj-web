@@ -377,13 +377,37 @@ if ($action === "view_problems") {
     include 'templates/footer.php';
 } elseif ($action === "view_submissions") {
     $problem_id = (int)($_GET['id'] ?? 0);
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+
+    $for_problem = null;
     if ($problem_id) {
-      $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.problem = ? ORDER BY s.id DESC");
-      $stmt->execute([$problem_id]);
+        $stmt = $db->prepare("SELECT * FROM problems WHERE id = ?");
+        $stmt->execute([$problem_id]);
+        $for_problem = $stmt->fetch();
+        
+        $stmt = $db->prepare("SELECT COUNT(*) FROM submissions WHERE problem = ?");
+        $stmt->execute([$problem_id]);
+        $total_submissions = $stmt->fetchColumn();
     } else {
-      $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id ORDER BY s.id DESC LIMIT 50");
-      $stmt->execute();
+        $stmt = $db->query("SELECT COUNT(*) FROM submissions");
+        $total_submissions = $stmt->fetchColumn();
     }
+    
+    $total_pages = max(1, (int)ceil($total_submissions / $per_page));
+
+    if ($problem_id) {
+        $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.problem = :pid ORDER BY s.id DESC LIMIT :limit OFFSET :offset");
+        $stmt->bindValue(":pid", $problem_id, PDO::PARAM_INT);
+        $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+        $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    } else {
+        $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id ORDER BY s.id DESC LIMIT :limit OFFSET :offset");
+        $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+        $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    }
+    $stmt->execute();
     $submissions = $stmt->fetchAll();
     
     $uids = array_unique(array_column($submissions, 'user'));
@@ -393,6 +417,7 @@ if ($action === "view_problems") {
     }
     unset($sub);
 
+    $problem = $for_problem; // Pass the problem details for template context
     include 'templates/header.php';
     include 'templates/view_submissions.php';
     include 'templates/footer.php';
