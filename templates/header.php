@@ -166,21 +166,9 @@
       font-size: 0.6em;
     }
 
-    .status-cell {
-      font-size: 0.8rem;
-      color: darkblue;
-    }
-
-    .status-passed {
-      font-size: 0.7rem;
-      color: green;
+    .admin-link {
       font-weight: bold;
-    }
-
-    .status-pending {
-      font-size: 0.7rem;
-      color: orange;
-      font-weight: bold;
+      font-size: 0.6em;
     }
 
     a {
