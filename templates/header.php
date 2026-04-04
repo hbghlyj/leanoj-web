@@ -206,7 +206,6 @@
       <a href="index.php?action=view_status">Status</a>
       <a href="index.php?action=view_problems">Problems</a>
       <a href="index.php?action=view_submissions">Submissions</a>
-      <a href="index.php?action=view_local_files">Local Files</a>
       <?php if (isset($_SESSION['user_id'])): ?>
         <span>
           <strong><?= htmlspecialchars($_SESSION['username']) ?></strong> |

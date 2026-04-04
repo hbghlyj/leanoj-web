@@ -527,44 +527,6 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $template = "templates/view_submission.php";
   }
 
-  elseif ($action === "view_local_files" && $user_id) {
-    $stmt = $db->query("SELECT * FROM local_files");
-    $local_files = $stmt->fetchAll();
-    
-    $uids = array_column($local_files, 'creator_id');
-    $usernames = DiscuzBridge::getUsernames($uids);
-    foreach ($local_files as &$lf) {
-        $lf['creator_name'] = $usernames[$lf['creator_id']] ?? "Unknown";
-    }
-    
-    $template = "templates/view_local_files.php";
-  }
-
-  elseif ($action === "view_local_file_history" && $user_id) {
-    $id = (int)$_GET['id'];
-    $stmt = $db->prepare("SELECT * FROM local_files WHERE id = :id");
-    $stmt->execute([":id" => $id]);
-    $lf = $stmt->fetch();
-    if (!$lf) redirect("view_local_files", [], "Not found");
-
-    $uids = [$lf['creator_id']];
-    $usernames = DiscuzBridge::getUsernames($uids);
-    $lf['creator_name'] = $usernames[$lf['creator_id']] ?? "Unknown";
-
-    $can_edit = ($is_admin || $lf['creator_id'] == $user_id);
-
-    $stmt = $db->prepare("SELECT * FROM local_file_revisions WHERE local_file_id = :id ORDER BY id DESC");
-    $stmt->execute([":id" => $id]);
-    $revisions = $stmt->fetchAll();
-    
-    $uids = array_column($revisions, 'user_id');
-    $usernames = DiscuzBridge::getUsernames($uids);
-    foreach ($revisions as &$r) {
-        $r['username'] = $usernames[$r['user_id']] ?? "Unknown";
-    }
-
-    $template = "templates/view_local_file_history.php";
-  }
 
 
   elseif ($action === "add_problem") {
@@ -592,26 +554,6 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $template = "templates/edit_problem.php";
   }
 
-  elseif ($action === "add_local_file" && $is_admin) {
-    $template = "templates/add_local_file.php";
-  }
-
-  elseif ($action === "edit_local_file" && $user_id) {
-    $id = (int)$_GET['id'];
-    $stmt = $db->prepare("SELECT * FROM local_files WHERE id = :id");
-    $stmt->execute([":id" => $id]);
-    $lf = $stmt->fetch();
-    if (!$lf) redirect("view_local_files", [], "Not found");
-
-    if (!$is_admin && $lf['creator_id'] != $user_id) {
-        redirect("view_local_files", [], "Permission denied");
-    }
-
-    // Read current content directly from filesystem
-    $content = @file_get_contents($lf['path']) ?: "";
-
-    $template = "templates/edit_local_file.php";
-  }
 
 
   elseif ($action === "view_history") {

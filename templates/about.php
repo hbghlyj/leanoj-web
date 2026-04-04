@@ -22,8 +22,11 @@ Once you click submit, your code is placed into a queue. Our backend worker will
 - **PASSED:** Congratulations! Lean successfully verified your proof without any errors or sorries.
 - **ERROR / TIMEOUT:** Your code failed to compile, contained an unresolved `sorry`, or took too long to verify. You can review the *Compiler Log* directly on your submission's detail page to see why it failed.
 
-### 5. Local Reference Files
-Some problems may depend on custom Lean files rather than standard Mathlib. These background theory files are listed in the **[Local Files](index.php?action=view_local_files)** section. If a problem references a local file, it will be automatically bundled when compiling your submissions. 
+### 5. Recursive Dependencies & Libraries
+Lean OJ supports **recursive problem dependencies**:
+- If Problem B depends on Problem A, anything that depends on B will automatically inherit the theorems from A.
+- These dependencies are automatically prepended to your proof context before verification.
+- You can build complex mathematical libraries simply by creating problems and linking them together!
 
 Happy proving!
 </div>
