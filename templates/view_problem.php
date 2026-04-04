@@ -19,7 +19,7 @@
     <?php if ($problem['dependency_details']): ?>
       <em>Dependencies:</em>
       <?php foreach ($problem['dependency_details'] as $dep): ?>
-        <a href="index.php?action=view_local_file_history&id=<?= $dep['id'] ?>"><?= htmlspecialchars(basename($dep['path'])) ?></a> 
+        <a href="index.php?action=view_problem&id=<?= $dep['id'] ?>"><?= htmlspecialchars($dep['title']) ?></a> 
       <?php endforeach; ?>
     <?php endif; ?>
     <em>Mathlib version used by the checker is v4.29.0.</em>

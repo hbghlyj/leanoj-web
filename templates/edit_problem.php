@@ -15,9 +15,9 @@
   <input type="file" name="template_file" accept=".lean">
   <h3>Dependencies</h3>
   <select name="dependencies[]" multiple style="height: 100px;">
-    <?php foreach ($local_files as $lf): ?>
-      <option value="<?= $lf['id'] ?>" <?= in_array($lf['id'], $problem['dependencies'] ?: []) ? 'selected' : '' ?>>
-        <?= htmlspecialchars(str_replace('/var/www/leanoj/local_files/', '', $lf['path'])) ?>
+    <?php foreach ($other_problems as $op): ?>
+      <option value="<?= $op['id'] ?>" <?= in_array($op['id'], $problem['dependencies'] ?: []) ? 'selected' : '' ?>>
+        <?= htmlspecialchars($op['title']) ?> (ID: <?= $op['id'] ?>)
       </option>
     <?php endforeach; ?>
   </select>

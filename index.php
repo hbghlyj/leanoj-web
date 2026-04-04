@@ -99,6 +99,33 @@ function separate_imports($content) {
   ];
 }
 
+/**
+ * Recursively fetch dependency templates.
+ */
+function get_recursive_dependency_content($db, $ids, &$visited = []) {
+  $content = "";
+  foreach ($ids as $id) {
+    if (in_array((int)$id, $visited)) continue;
+    $visited[] = (int)$id;
+
+    $stmt = $db->prepare("SELECT template, dependencies FROM problems WHERE id = :id");
+    $stmt->execute([':id' => (int)$id]);
+    $row = $stmt->fetch();
+    if (!$row) continue;
+
+    // Recurse into sub-dependencies first
+    $sub_deps = json_decode($row['dependencies'] ?: '[]', true);
+    if (!empty($sub_deps)) {
+      $content .= get_recursive_dependency_content($db, $sub_deps, $visited);
+    }
+
+    if (!empty($row['template'])) {
+      $content .= $row['template'] . "\n";
+    }
+  }
+  return $content;
+}
+
 if ($action === "logout") {
   DiscuzBridge::clearCookies();
   redirect();
@@ -108,9 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   // register and login removed - handled by Discuz!
 
   if ($action === "submit_solution" && $user_id) {
-    $problem_id = $_POST['problem_id'] ?? 0;
+    $problem_id = (int)($_POST['problem_id'] ?? 0);
     $time = date("Y-m-d\TH:i", time());
     $source_code = trim($_POST['source_text'] ?? "");
+
+    $stmt = $db->prepare("SELECT template FROM problems WHERE id = :id");
+    $stmt->execute([":id" => $problem_id]);
+    $prob = $stmt->fetch();
+    if (!$prob || empty($prob['template'])) {
+        redirect("view_problem", ["id" => $problem_id], "Submissions are disabled for this problem.");
+    }
+
     if (!empty($_FILES['source_file']['tmp_name'])) {
       $err = validate_file('source_file');
       if ($err) {
@@ -141,35 +176,27 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $deps = array_map('intval', (array)($_POST['dependencies'] ?? []));
     $deps_json = json_encode($deps);
     
-    // Fetch dependency contents
-    $prepended_content = "";
-    if (!empty($deps)) {
-        $placeholders = implode(',', array_fill(0, count($deps), '?'));
-        $stmt = $db->prepare("SELECT path FROM local_files WHERE id IN ($placeholders)");
-        $stmt->execute($deps);
-        $files = $stmt->fetchAll();
-        foreach ($files as $f) {
-            $content = @file_get_contents($f['path']);
-            if ($content !== false) {
-                $prepended_content .= $content . "\n";
-            }
-        }
-    }
+    // Fetch recursive dependency contents
+    $visited = [];
+    $prepended_content = get_recursive_dependency_content($db, $deps, $visited);
 
-    if (empty($title) || empty($statement) || empty($template)) {
-      redirect("add_problem", [], "Fill in required fields");
+    if (empty($title)) {
+      redirect("add_problem", [], "Title is required");
     }
     
-    // Verify template with AXLE (with prepended dependencies)
-    $res = axle_api_call("check", [
-      "content" => $prepended_content . $template,
-      "environment" => "lean-4.28.0",
-      "ignore_imports" => true,
-      "timeout_seconds" => 120
-    ]);
-    if ($res && isset($res['okay']) && !$res['okay']) {
-      $errors = $res['lean_messages']['errors'] ?? ["Invalid Lean template (API Error)"];
-      redirect("add_problem", [], "Template Error: " . implode("\n", $errors));
+    $res = null;
+    if (!empty($template)) {
+        // Verify template with AXLE (with prepended dependencies)
+        $res = axle_api_call("check", [
+          "content" => $prepended_content . $template,
+          "environment" => "lean-4.28.0",
+          "ignore_imports" => true,
+          "timeout_seconds" => 120
+        ]);
+        if ($res && isset($res['okay']) && !$res['okay']) {
+          $errors = $res['lean_messages']['errors'] ?? ["Invalid Lean template (API Error)"];
+          redirect("add_problem", [], "Template Error: " . implode("\n", $errors));
+        }
     }
 
     $stmt = $db->prepare("
@@ -209,47 +236,29 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $deps = array_map('intval', (array)($_POST['dependencies'] ?? []));
     $deps_json = json_encode($deps);
 
+    $title = trim($_POST['title'] ?? "");
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
-    if (empty($title) || empty($statement)) {
-      redirect("edit_problem", ["id" => $id], "Fill in required fields");
-    }
-    if (!empty($_FILES['template_file']['tmp_name'])) {
-      $err = validate_file('template_file');
-      if ($err) {
-        redirect("edit_problem", ["id" => $id], $err);
-      }
-      $template = trim(file_get_contents($_FILES['template_file']['tmp_name']));
-    }
-    if (empty($template)) {
-      redirect("edit_problem", ["id" => $id], "Fill in required fields");
-    }
-
-    // Fetch dependency contents
-    $prepended_content = "";
-    if (!empty($deps)) {
-        $placeholders = implode(',', array_fill(0, count($deps), '?'));
-        $stmt = $db->prepare("SELECT path FROM local_files WHERE id IN ($placeholders)");
-        $stmt->execute($deps);
-        $files = $stmt->fetchAll();
-        foreach ($files as $f) {
-            $content = @file_get_contents($f['path']);
-            if ($content !== false) {
-                $prepended_content .= $content . "\n";
-            }
-        }
+    if (empty($title)) {
+      redirect("edit_problem", ["id" => $id], "Title is required");
     }
     
-    // Verify template with AXLE (with prepended dependencies)
-    $res = axle_api_call("check", [
-      "content" => $prepended_content . $template,
-      "environment" => "lean-4.28.0",
-      "ignore_imports" => true,
-      "timeout_seconds" => 120
-    ]);
-    if ($res && isset($res['okay']) && !$res['okay']) {
-      $errors = $res['lean_messages']['errors'] ?? ["Invalid Lean template (API Error)"];
-      redirect("edit_problem", ["id" => $id], "Template Error: " . implode("\n", $errors));
+    // Fetch recursive dependency contents
+    $visited = [];
+    $prepended_content = get_recursive_dependency_content($db, $deps, $visited);
+
+    if (!empty($template)) {
+        // Verify template with AXLE (with prepended dependencies)
+        $res = axle_api_call("check", [
+          "content" => $prepended_content . $template,
+          "environment" => "lean-4.28.0",
+          "ignore_imports" => true,
+          "timeout_seconds" => 120
+        ]);
+        if ($res && isset($res['okay']) && !$res['okay']) {
+          $errors = $res['lean_messages']['errors'] ?? ["Invalid Lean template (API Error)"];
+          redirect("edit_problem", ["id" => $id], "Template Error: " . implode("\n", $errors));
+        }
     }
 
     $stmt = $db->prepare("
@@ -352,152 +361,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_history", ["id" => $prob_id]);
   }
 
-  elseif ($action === "add_local_file" && $is_admin) {
-    $path = trim($_POST['path'] ?? "");
-    $description = trim($_POST['description'] ?? "");
-    $content = trim($_POST['content'] ?? "");
-    
-    if (strpos($path, '..') !== false) redirect("view_local_files", [], "Invalid path");
-    if (strpos($path, '/var/www/leanoj/file/') !== 0) {
-      $path = '/var/www/leanoj/file/' . ltrim($path, '/');
-    }
-    if (substr($path, -5) !== ".lean") {
-      $path .= ".lean";
-    }
-
-    if (empty($path) || empty($content)) {
-      redirect("view_local_files", [], "Path and content are required");
-    }
-
-    $stmt = $db->prepare("INSERT INTO local_files (path, creator_id, status) VALUES (:path, :creator_id, 'PENDING')");
-    $stmt->execute([":path" => $path, ":creator_id" => $user_id]);
-    $file_id = $db->lastInsertId();
-
-    $dir = dirname($path);
-    if (!is_dir($dir)) {
-      mkdir($dir, 0777, true);
-    }
-    file_put_contents($path, $content);
-    
-    redirect("view_local_files");
-  }
-
-  elseif ($action === "edit_local_file" && $user_id) {
-    $id = (int)$_POST['id'];
-    $path = trim($_POST['path'] ?? "");
-    $content = trim($_POST['content'] ?? "");
-
-    if (strpos($path, '..') !== false) redirect("view_local_files", [], "Invalid path");
-    if (strpos($path, '/var/www/leanoj/file/') !== 0) {
-      $path = '/var/www/leanoj/file/' . ltrim($path, '/');
-    }
-    if (substr($path, -5) !== ".lean") {
-      $path .= ".lean";
-    }
-
-    $stmt = $db->prepare("SELECT * FROM local_files WHERE id = :id");
-    $stmt->execute([":id" => $id]);
-    $lf = $stmt->fetch();
-    if (!$lf) redirect("view_local_files", [], "Not found");
-
-    if (!$is_admin && $lf['creator_id'] != $user_id) {
-        redirect("view_local_files", [], "Permission denied");
-    }
-
-    // Capture current state BEFORE overwriting
-    $oldContent = @file_get_contents($lf['path']) ?: "";
-    $time = date("Y-m-d\TH:i:s", time());
-    $stmt = $db->prepare("INSERT INTO local_file_revisions (local_file_id, content, user_id, time) VALUES (:fid, :content, :uid, :time)");
-    $stmt->execute([":fid" => $id, ":content" => $oldContent, ":uid" => $user_id, ":time" => $time]);
-
-    $stmt = $db->prepare("UPDATE local_files SET path = :path, status = 'PENDING' WHERE id = :id");
-    $stmt->execute([":path" => $path, ":id" => $id]);
-
-    $dir = dirname($path);
-    if (!is_dir($dir)) {
-      mkdir($dir, 0777, true);
-    }
-    file_put_contents($path, $content);
-
-    redirect("view_local_files");
-  }
-
-  elseif ($action === "rollback_local_file" && $user_id) {
-    $rev_id = (int)$_POST['rev_id'];
-    $stmt = $db->query("SELECT r.*, lf.path, lf.creator_id FROM local_file_revisions r JOIN local_files lf ON r.local_file_id = lf.id WHERE r.id = $rev_id");
-    $rev = $stmt->fetch();
-    if (!$rev) redirect("view_local_files", [], "Revision not found");
-
-    if (!$is_admin && $rev['creator_id'] != $user_id) {
-        redirect("view_local_files", [], "Permission denied");
-    }
-
-    // Capture current state BEFORE rollback
-    $oldContent = @file_get_contents($rev['path']) ?: "";
-    $time = date("Y-m-d\TH:i:s", time());
-    $stmt = $db->prepare("INSERT INTO local_file_revisions (local_file_id, content, user_id, time) VALUES (:fid, :content, :uid, :time)");
-    $stmt->execute([":fid" => $rev['local_file_id'], ":content" => $oldContent, ":uid" => $user_id, ":time" => $time]);
-
-    $stmt = $db->prepare("UPDATE local_files SET status = 'PENDING' WHERE id = :id");
-    $stmt->execute([":id" => $rev['local_file_id']]);
-
-    file_put_contents($rev['path'], $rev['content']);
-
-    redirect("view_local_file_history", ["id" => $rev['local_file_id']]);
-  }
-
-  elseif ($action === "delete_local_file_revision" && $is_admin) {
-    $rev_id = (int)$_POST['rev_id'];
-    $fid = (int)$_POST['fid'];
-    $stmt = $db->prepare("DELETE FROM local_file_revisions WHERE id = :id");
-    $stmt->execute([":id" => $rev_id]);
-    redirect("view_local_file_history", ["id" => $fid]);
-  }
-
-  elseif ($action === "delete_local_file" && $user_id) {
-    $id = (int)$_POST['id'];
-    $stmt = $db->prepare("SELECT * FROM local_files WHERE id = :id");
-    $stmt->execute([":id" => $id]);
-    $lf = $stmt->fetch();
-    if (!$lf) redirect("view_local_files", [], "Not found");
-
-    if (!$is_admin && $lf['creator_id'] != $user_id) {
-        redirect("view_local_files", [], "Permission denied");
-    }
-
-    // 1. Unlink from problems
-    $stmt = $db->query("SELECT id, dependencies FROM problems");
-    $problems = $stmt->fetchAll();
-    foreach ($problems as $p) {
-        $deps = json_decode($p['dependencies'] ?: '[]', true);
-        if (in_array($id, $deps)) {
-            $deps = array_values(array_diff($deps, [$id]));
-            $stmt_upd = $db->prepare("UPDATE problems SET dependencies = :deps WHERE id = :pid");
-            $stmt_upd->execute([':deps' => json_encode($deps), ':pid' => $p['id']]);
-        }
-    }
-
-    // 2. Clear history
-    $stmt = $db->prepare("DELETE FROM local_file_revisions WHERE local_file_id = :id");
-    $stmt->execute([":id" => $id]);
-
-    // 3. Delete main record
-    $stmt = $db->prepare("DELETE FROM local_files WHERE id = :id");
-    $stmt->execute([":id" => $id]);
-
-    // 4. Physical deletion
-    if (file_exists($lf['path'])) {
-        unlink($lf['path']);
-    }
-
-    // 5. Sweep artifacts
-    $baseName = pathinfo($lf['path'], PATHINFO_FILENAME);
-    $sweepCmd = "sudo /usr/local/bin/leanoj_sweep_artifacts.sh " . escapeshellarg($baseName);
-    exec($sweepCmd . " 2>&1");
-
-    redirect("view_local_files");
-  }
-
   elseif ($action === "rejudge" && $is_admin) {
     $id = (int)$_POST['id'] ?: null;
     $stmt = $db->prepare("UPDATE submissions SET status = 'PENDING' WHERE id = :id");
@@ -505,8 +368,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     header("Location: {$_SERVER['HTTP_REFERER']}");
     exit;
   }
-
-
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "GET") {
@@ -581,12 +442,12 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
             $s['username'] = $usernames[$s['user']] ?? "Unknown";
         }
     }
-    // Decode dependencies and fetch details
+    // Decode dependencies and fetch recursive details
     $dep_ids = json_decode($problem['dependencies'] ?: '[]', true);
     $problem['dependency_details'] = [];
     if (!empty($dep_ids)) {
         $placeholders = implode(',', array_fill(0, count($dep_ids), '?'));
-        $stmt = $db->prepare("SELECT id, path FROM local_files WHERE id IN ($placeholders)");
+        $stmt = $db->prepare("SELECT id, title FROM problems WHERE id IN ($placeholders)");
         $stmt->execute($dep_ids);
         $problem['dependency_details'] = $stmt->fetchAll();
     }
@@ -708,8 +569,8 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
 
   elseif ($action === "add_problem") {
     if (!$user_id) redirect("view_problems", [], "Please login first");
-    $stmt = $db->query("SELECT id, path FROM local_files");
-    $local_files = $stmt->fetchAll();
+    $stmt = $db->query("SELECT id, title FROM problems WHERE template IS NOT NULL AND template != ''");
+    $other_problems = $stmt->fetchAll();
     $template = "templates/add_problem.php";
   }
 
@@ -721,8 +582,9 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $problem = $stmt->fetch();
     if (!$problem) redirect("view_problems", [], "Not found");
     
-    $stmt = $db->query("SELECT id, path FROM local_files");
-    $local_files = $stmt->fetchAll();
+    $stmt = $db->prepare("SELECT id, title FROM problems WHERE id != :id AND template IS NOT NULL AND template != ''");
+    $stmt->execute([':id' => $id]);
+    $other_problems = $stmt->fetchAll();
 
     // Decode dependencies
     $problem['dependencies'] = json_decode($problem['dependencies'] ?: '[]', true);

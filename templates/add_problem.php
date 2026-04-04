@@ -10,8 +10,8 @@
   <input type="file" name="template_file" accept=".lean">
   <h3>Dependencies</h3>
   <select name="dependencies[]" multiple style="height: 100px;">
-    <?php foreach ($local_files as $lf): ?>
-      <option value="<?= $lf['id'] ?>"><?= htmlspecialchars(str_replace('/var/www/leanoj/local_files/', '', $lf['path'])) ?></option>
+    <?php foreach ($other_problems as $op): ?>
+      <option value="<?= $op['id'] ?>"><?= htmlspecialchars($op['title']) ?> (ID: <?= $op['id'] ?>)</option>
     <?php endforeach; ?>
   </select>
   <input style="float: right" type="submit" value="Add Problem">
