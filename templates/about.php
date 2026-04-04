@@ -17,9 +17,9 @@
     - **Direct Input:** Paste or type your Lean code directly into the online text editor provided on the problem page.
     - **File Upload:** Upload a `.lean` file containing your solution.
 
-    *Note: Mathlib is always imported automatically. Please do not include `import` statements (like `import Mathlib`)
-    in your submission; our system handles this and any manual imports will be filtered out. Similarly, dependencies on
-    other problems should be selected via the **Dependencies** field in the problem settings.*
+    *Note: Mathlib is the only external library available and is imported automatically. For any other code
+    dependencies, you must first create those theorems as separate **Problems** in Lean OJ and then select them via the
+    **Dependencies** select field in the problem settings.*
 
     **Tip:** You can use the **[Lean 4 Web Editor](https://live.lean-lang.org/)**, **[AXLE
     Verify](https://axle.axiommath.ai/verify_proof)**, or **[AXLE Check](https://axle.axiommath.ai/check)** to draft and
@@ -41,6 +41,12 @@
     - If Problem B depends on Problem A, anything that depends on B will automatically inherit the theorems from A.
     - These dependencies are automatically prepended to your proof context before verification.
     - You can build complex mathematical libraries simply by creating problems and linking them together!
+
+    ### 6. Open Contribution & Permissions
+    Lean OJ is a collaborative platform:
+    - **Add Problems:** Any registered user can create a new problem.
+    - **Edit Everything:** Any registered user can edit the title, statement, or template of *any* existing problem.
+    - **Version History:** Every edit is recorded as a new **Revision**. You can view the history and compare versions by clicking the **[History]** link on any problem page.
 
     Happy proving!
 </div>
