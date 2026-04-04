@@ -340,10 +340,11 @@ if ($action === "view_problems") {
 } elseif ($action === "view_submissions") {
     $problem_id = (int)($_GET['id'] ?? 0);
     if ($problem_id) {
-      $stmt = $db->prepare("SELECT s.*, p.title as problem_title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.problem = ? ORDER BY s.id DESC");
+      $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.problem = ? ORDER BY s.id DESC");
       $stmt->execute([$problem_id]);
     } else {
-      $stmt = $db->query("SELECT s.*, p.title as problem_title FROM submissions s JOIN problems p ON s.problem = p.id ORDER BY s.id DESC LIMIT 50");
+      $stmt = $db->prepare("SELECT s.*, p.title as title FROM submissions s JOIN problems p ON s.problem = p.id ORDER BY s.id DESC LIMIT 50");
+      $stmt->execute();
     }
     $submissions = $stmt->fetchAll();
     
