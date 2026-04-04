@@ -349,8 +349,12 @@ if ($action === "view_problems") {
       $problem['dependency_details'] = $stmt->fetchAll();
     }
     
-    // FETCH RECENT SUBMISSIONS
-    $stmt = $db->prepare("SELECT * FROM submissions WHERE problem = ? ORDER BY id DESC LIMIT 5");
+    //    // RECENT SUBMISSIONS
+    $stmt = $db->prepare("SELECT COUNT(*) FROM submissions WHERE problem = ?");
+    $stmt->execute([$id]);
+    $total_submissions_count = $stmt->fetchColumn();
+
+    $stmt = $db->prepare("SELECT s.* FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.problem = ? ORDER BY s.id DESC LIMIT 10");
     $stmt->execute([$id]);
     $recent_submissions = $stmt->fetchAll();
     

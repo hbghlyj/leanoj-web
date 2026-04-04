@@ -90,7 +90,9 @@
       <?php endforeach; ?>
       </tbody>
     </table>
-    <a href="index.php?action=view_submissions&id=<?= $problem['id'] ?>">View all</a>
+    <?php if ($total_submissions_count > 10): ?>
+      <a href="index.php?action=view_submissions&id=<?= $problem['id'] ?>">View all</a>
+    <?php endif; ?>
   <?php else: ?>
     <p>None yet.</p>
   <?php endif; ?>
