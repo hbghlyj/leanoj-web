@@ -16,7 +16,7 @@ function failStatus($db, $id, $status, $out) {
 }
 
 function axle_api_call($tool, $payload) {
-  $env = parse_ini_file("/var/www/leanoj/leanoj-web/.env", false, INI_SCANNER_RAW);
+  $env = parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
   $apiKey = $env['AXLE_API_KEY'] ?? '';
   $ch = curl_init("https://axle.axiommath.ai/api/v1/" . $tool);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -122,7 +122,11 @@ function process_local_file($db, $lf) {
   // 1. Race Logic similar to index.php verify_local_file
   // Use AXLE 'check' tool
   echo "Attempting AXLE check for local file...\n";
-  $res = axle_api_call("check", ["content" => $content, "environment" => "lean-4.28.0"]);
+  $res = axle_api_call("check", [
+    "content" => $content,
+    "environment" => "lean-4.28.0",
+    "timeout_seconds" => 120
+  ]);
   if ($res && isset($res['okay'])) {
     if ($res['okay']) {
       echo "AXLE Success!\n";
@@ -178,7 +182,9 @@ function process_submission($db, $row) {
     $payload = [
       "formal_statement" => $row['template'],
       "content" => $row['source'],
-      "environment" => "lean-4.28.0"
+      "environment" => "lean-4.28.0",
+      "ignore_imports" => true,
+      "timeout_seconds" => 120
     ];
     // echo "DEBUG: Payload: " . json_encode($payload, JSON_PRETTY_PRINT) . "\n";
     $res = axle_api_call("verify_proof", $payload);

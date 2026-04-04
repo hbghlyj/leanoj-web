@@ -29,7 +29,7 @@ function redirect($action = "view_problems", $params = [], $error = "") {
 }
 
 function axle_api_call($tool, $payload) {
-  $env = parse_ini_file("/var/www/leanoj/leanoj-web/.env", false, INI_SCANNER_RAW);
+  $env = parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
   $apiKey = $env['AXLE_API_KEY'] ?? '';
   
   $ch = curl_init("https://axle.axiommath.ai/api/v1/" . $tool);
@@ -57,7 +57,12 @@ function axle_api_call($tool, $payload) {
 
 // verify_local_file removed - handled by background worker
 
-$db = new PDO("sqlite:/var/www/leanoj/leanoj-web/db.sqlite");
+$_env = parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
+$_dbPath = $_env['DB_PATH'] ?? 'db.sqlite';
+if (!str_starts_with($_dbPath, '/') && !preg_match('/^[A-Za-z]:/', $_dbPath)) {
+    $_dbPath = __DIR__ . '/' . $_dbPath;
+}
+$db = new PDO("sqlite:" . $_dbPath);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
