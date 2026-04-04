@@ -43,9 +43,13 @@ class DiscuzBridge
             return;
         }
 
-        $db = $_config['db'][1];
+        $db = $_config['db'][1] ?? null;
+        if (!$db || !class_exists('mysqli')) {
+            return;
+        }
+
         $mysqli = new mysqli($db['dbhost'], $db['dbuser'], $db['dbpw'], $db['dbname']);
-        if ($mysqli->connect_error) {
+        if ($mysqli->connect_errno) {
             return;
         }
 
@@ -149,9 +153,13 @@ class DiscuzBridge
     public static function getUsernames($uids) {
         if (empty($uids)) return [];
         $config = self::getConfig();
-        $db = $config['db'][1];
+        $db = $config['db'][1] ?? null;
+        if (!$db || !class_exists('mysqli')) {
+            return [];
+        }
+
         $mysqli = new mysqli($db['dbhost'], $db['dbuser'], $db['dbpw'], $db['dbname']);
-        if ($mysqli->connect_error) {
+        if ($mysqli->connect_errno) {
             error_log("DiscuzBridge MySQL Connect Error: " . $mysqli->connect_error);
             return [];
         }
