@@ -9,9 +9,7 @@ db.sqlite
 *.sqlite-wal
 
 # PHP
-/vendor/
-composer.phar
-composer.lock
+# (No Composer dependencies in this project)
 
 # IDE and Editor files
 .vscode/
