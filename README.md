@@ -42,9 +42,6 @@ CREATE TABLE problem_revisions (
 ```
 
 ## Setup & Environment
-1.  Configure `.env`:
-    ```
-    DB_PATH=db.sqlite
-    ```
-2.  Ensure `www-data` has write access to `db.sqlite`.
-3.  Run the worker: `php worker.php`.
+1.  **Database**: Ensure `db.sqlite` exists in the root directory and has been initialized with `init_db.sql`.
+2.  **Permissions**: Ensure `www-data` has write access to the root directory and `db.sqlite`.
+3.  **Run Worker**: Start the background judge: `php worker.php`.
