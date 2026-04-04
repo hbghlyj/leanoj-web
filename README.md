@@ -103,3 +103,44 @@ To provide immediate (synchronous) validation when a user registers a Local Depe
   - `leanoj_verify_local.sh`: Wraps `isolate` to synchronously compile `.lean` files during the HTTP POST request.
   - `leanoj_sweep_artifacts.sh`: Safely purges `.olean` files from the root-owned `.lake/build` directory upon file deletion.
 - **Rationale:** This provides immediate user feedback on syntax errors during file registration without exposing generalized `root` access or overly complicating the background worker's queue design.
+
+---
+
+## 🚀 AXLE API Integration
+Lean OJ utilizes the **AXLE API** (`https://axle.axiommath.ai/api/v1/`) for high-performance Lean 4 verification.
+
+### 🔑 Authentication
+The application requires an `AXLE_API_KEY` in the `.env` file. Requests include this key as a Bearer token in the `Authorization` header.
+
+### 🛠️ Tools Used
+The following AXLE tools are integrated into the core workflows:
+
+#### 1. `check`
+Used for **Template** and **Dependency** validation (in `index.php` and `worker.php`).
+- **Purpose**: Verifies that a Lean file compiles correctly without checking specific proofs.
+- **Example Payload**:
+  ```json
+  {
+    "content": "-- Lean code here",
+    "environment": "lean-4.28.0",
+    "ignore_imports": true,
+    "timeout_seconds": 120
+  }
+  ```
+
+#### 2. `verify_proof`
+Used for **Submission** grading (in `worker.php`).
+- **Purpose**: Verifies a student's proof against the problem's formal template.
+- **Example Payload**:
+  ```json
+  {
+    "formal_statement": "theorem exercise_1 ...",
+    "content": "proof ...",
+    "environment": "lean-4.28.0",
+    "ignore_imports": true,
+    "timeout_seconds": 120
+  }
+  ```
+
+### ⚙️ Default Environment
+Unless otherwise specified, the application uses **`lean-4.28.0`** as the default environment for all API calls to ensure consistency between the web interface and the production verification results.
