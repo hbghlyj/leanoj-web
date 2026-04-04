@@ -4,12 +4,9 @@
 .env.*.local
 
 # Database files
-# *.db
-# *.sqlite
-# *.sqlite3
-# *.sqlite-shm
-# *.sqlite-wal
-# database/
+db.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # PHP
 /vendor/
