@@ -481,23 +481,6 @@ if ($action === "view_problems") {
     include 'templates/header.php';
     include 'templates/compare_revision.php';
     include 'templates/footer.php';
-} elseif ($action === "view_status") {
-    $stmt = $db->query("SELECT s.*, p.title FROM submissions s JOIN problems p ON s.problem = p.id ORDER BY s.id DESC LIMIT 10");
-    $recent_jobs = $stmt->fetchAll();
-    $uids = array_unique(array_column($recent_jobs, 'user'));
-    $usernames = DiscuzBridge::getUsernames($uids);
-    foreach ($recent_jobs as &$j) {
-        $j['username'] = $usernames[$j['user']] ?? "Unknown";
-    }
-    unset($j);
-
-    include 'templates/header.php';
-    include 'templates/view_status.php';
-    include 'templates/footer.php';
-} elseif ($action === "status_info") {
-    include 'templates/header.php';
-    include 'templates/status_info.php';
-    include 'templates/footer.php';
 } elseif ($action === "about") {
     include 'templates/header.php';
     include 'templates/about.php';

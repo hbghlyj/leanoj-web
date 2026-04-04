@@ -41,7 +41,6 @@
             <span class="status-<?= str_replace(' ', '-', strtolower($s['status'])) ?>">
               <?= htmlspecialchars($s['status']) ?>
             </span>
-            <a href="index.php?action=status_info">ⓘ</a>
             <?php if ($is_admin || ($user_id && $s['user'] == $user_id)): ?>
               <form method="POST" action="index.php?action=delete_submission" style="display:inline;" onsubmit="return confirm('Delete submission?');">
                 <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">

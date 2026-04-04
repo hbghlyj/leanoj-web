@@ -193,7 +193,6 @@
   <div class="main-container">
     <nav>
       <a href="index.php?action=about">Guide</a>
-      <a href="index.php?action=view_status">Status</a>
       <a href="index.php?action=view_problems">Problems</a>
       <a href="index.php?action=view_submissions">Submissions</a>
       <?php if (isset($_SESSION['user_id'])): ?>
