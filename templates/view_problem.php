@@ -59,7 +59,6 @@
         <th style="text-align: center">#</th>
         <th>User</th>
         <th>Time (UTC)</th>
-        <th>Status</th>
       </tr>
     </thead>
     <tbody>
@@ -74,17 +73,14 @@
             <?= htmlspecialchars($s['username']) ?>
           </td>
           <td><?= $s['time'] ?? "Long time ago" ?></td>
-          <td class="status-cell">
-            <span class="status-<?= str_replace(' ', '-', strtolower($s['status'])) ?>">
-              <?= htmlspecialchars($s['status']) ?>
-            </span>
-            <?php if ($is_admin || ($user_id && $s['user'] == $user_id)): ?>
+          <?php if ($is_admin || ($user_id && $s['user'] == $user_id)): ?>
+            <td style="border-left: none;">
               <form method="POST" action="index.php?action=delete_submission" style="display:inline;" onsubmit="return confirm('Delete submission?');">
                 <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
                 <input type="submit" value="x" style="padding: 0 4px; color: red;">
               </form>
-            <?php endif; ?>
-          </td>
+            </td>
+          <?php endif; ?>
         </tr>
       <?php endforeach; ?>
       </tbody>

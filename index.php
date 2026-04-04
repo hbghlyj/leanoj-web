@@ -96,7 +96,7 @@ if ($action === "logout") {
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
   if ($action === "submit_solution" && $user_id) {
     $problem_id = (int)($_POST['problem_id'] ?? 0);
-    $time = date("Y-m-d\TH:i", time());
+    $time = date("Y-m-d\TH:i:s", time());
     $source_code = trim($_POST['source_text'] ?? "");
 
     $stmt = $db->prepare("SELECT template, dependencies FROM problems WHERE id = :id");
@@ -124,32 +124,23 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       "timeout_seconds" => 120
     ]);
 
-    $status = 'SYSTEM ERROR';
-    $log = 'AXLE API verification failed or timed out.';
-
-    if ($res && isset($res['okay'])) {
-        if ($res['okay']) {
-            $status = 'PASSED';
-            $log = null;
-        } else {
-            $status = 'ERROR';
-            $errors = $res['tool_messages']['errors'] ?? ($res['lean_messages']['errors'] ?? ["Unknown error"]);
-            $log = implode("\n", $errors);
-        }
+    if ($res && isset($res['okay']) && $res['okay']) {
+        // ONLY INSERT ON SUCCESS
+        $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, time) VALUES (:problem, :user, :source, :time)");
+        $stmt->execute([
+            ":problem" => $problem_id, 
+            ":user" => $user_id, 
+            ":source" => $source_code, 
+            ":time" => $time
+        ]);
+        $submission_id = $db->lastInsertId();
+        redirect("view_submission", ["id" => $submission_id]);
+    } else {
+        // FAILURES ARE DISCARDED; SHOW ERROR LOG IN FLASH
+        $errors = $res['tool_messages']['errors'] ?? ($res['lean_messages']['errors'] ?? ["Verification failed or timed out."]);
+        $_SESSION['flash_error_log'] = implode("\n", $errors);
+        redirect("view_problem", ["id" => $problem_id]);
     }
-
-    $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, status, time, log) VALUES (:problem, :user, :source, :status, :time, :log)");
-    $stmt->execute([
-        ":problem" => $problem_id, 
-        ":user" => $user_id, 
-        ":source" => $source_code, 
-        ":status" => $status, 
-        ":time" => $time,
-        ":log" => $log
-    ]);
-    
-    $submission_id = $db->lastInsertId();
-    redirect("view_submission", ["id" => $submission_id]);
   }
 
   elseif ($action === "add_problem" && $user_id) {
@@ -309,7 +300,7 @@ if ($action === "view_problems") {
     $stmt = $db->prepare("
       SELECT p.*,
         (SELECT COUNT(DISTINCT user) FROM submissions
-          WHERE problem = p.id AND status = 'PASSED') as solves
+          WHERE problem = p.id) as solves
       FROM problems p
       ORDER BY p.id DESC
       LIMIT :limit OFFSET :offset");
@@ -321,7 +312,7 @@ if ($action === "view_problems") {
     foreach ($problems as &$p) {
         $p['is_solved'] = false;
         if ($user_id) {
-            $checkStmt = $db->prepare("SELECT 1 FROM submissions WHERE problem = :pid AND user = :uid AND status = 'PASSED' LIMIT 1");
+            $checkStmt = $db->prepare("SELECT 1 FROM submissions WHERE problem = :pid AND user = :uid LIMIT 1");
             $checkStmt->execute([":pid" => $p['id'], ":uid" => $user_id]);
             $p['is_solved'] = (bool)$checkStmt->fetchColumn();
         }
@@ -415,7 +406,6 @@ if ($action === "view_problems") {
     $usernames = DiscuzBridge::getUsernames([$submission['user']]);
     $submission['username'] = $usernames[$submission['user']] ?? "UID: " . $submission['user'];
 
-    $log = $submission['log'] ?? "No log available.";
     include 'templates/header.php';
     include 'templates/view_submission.php';
     include 'templates/footer.php';
@@ -480,6 +470,10 @@ if ($action === "view_problems") {
     }
     include 'templates/header.php';
     include 'templates/compare_revision.php';
+    include 'templates/footer.php';
+} elseif ($action === "status_info") {
+    include 'templates/header.php';
+    include 'templates/status_info.php';
     include 'templates/footer.php';
 } elseif ($action === "about") {
     include 'templates/header.php';

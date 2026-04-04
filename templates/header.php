@@ -212,3 +212,11 @@
     <?php if (isset($_GET['error'])): ?>
       <div class="error"><?= nl2br(htmlspecialchars($_GET['error'])) ?></div>
     <?php endif; ?>
+
+    <?php if (isset($_SESSION['flash_error_log'])): ?>
+      <div class="error" style="background: #fff0f0; border: 1px solid #c53030; padding: 15px; margin-bottom: 10px;">
+        <strong>Verification Error:</strong><br>
+        <pre style="white-space: pre-wrap; font-size: 0.85em; margin-top: 10px;"><?= htmlspecialchars($_SESSION['flash_error_log']) ?></pre>
+      </div>
+      <?php unset($_SESSION['flash_error_log']); ?>
+    <?php endif; ?>
