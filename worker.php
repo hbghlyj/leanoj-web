@@ -1,4 +1,8 @@
 <?php
+if (php_sapi_name() !== 'cli') {
+    header("HTTP/1.1 403 Forbidden");
+    die("Access denied: This script must be run from the command line.");
+}
 $db = new PDO("sqlite:" . __DIR__ . "/db.sqlite");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
