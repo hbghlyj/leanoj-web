@@ -240,6 +240,48 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $db->prepare("DELETE FROM submissions WHERE id = ?")->execute([$id]);
     redirect("view_submissions", ["id" => $sub['problem']]);
   }
+
+  // RECOVERED: ROLLBACK REVISION
+  elseif ($action === "rollback_revision" && $user_id) {
+    $rev_id = (int)$_POST['rev_id'] ?: null;
+    $stmt = $db->prepare("SELECT * FROM problem_revisions WHERE id = :rev_id");
+    $stmt->execute([":rev_id" => $rev_id]);
+    $rev = $stmt->fetch();
+    if (!$rev) redirect("view_problems", [], "Revision not found");
+    
+    $prob_id = $rev['problem_id'];
+    $stmt = $db->prepare("SELECT creator_id FROM problems WHERE id = :id");
+    $stmt->execute([":id" => $prob_id]);
+    $prob = $stmt->fetch();
+    if (!$is_admin && $prob['creator_id'] != $user_id) redirect("view_problem", ["id" => $prob_id], "Permission denied");
+
+    $stmt = $db->prepare("UPDATE problems SET statement = :statement, template = :template WHERE id = :id");
+    $stmt->execute([
+      ":statement" => $rev['statement'],
+      ":template" => $rev['template'],
+      ":id" => $prob_id
+    ]);
+    
+    $time = date("Y-m-d\TH:i:s", time());
+    $stmt = $db->prepare("INSERT INTO problem_revisions (problem_id, statement, template, user_id, time) VALUES (:problem_id, :statement, :template, :user_id, :time)");
+    $stmt->execute([
+      ":problem_id" => $prob_id,
+      ":statement" => $rev['statement'],
+      ":template" => $rev['template'],
+      ":user_id" => $user_id,
+      ":time" => $time,
+    ]);
+    redirect("view_history", ["id" => $prob_id]);
+  }
+
+  // RECOVERED: DELETE REVISION
+  elseif ($action === "delete_revision" && $is_admin) {
+    $rev_id = (int)$_POST['rev_id'] ?: null;
+    $prob_id = (int)$_POST['prob_id'] ?: null;
+    $stmt = $db->prepare("DELETE FROM problem_revisions WHERE id = :rev_id");
+    $stmt->execute([":rev_id" => $rev_id]);
+    redirect("view_history", ["id" => $prob_id]);
+  }
 }
 
 $error = $_GET['error'] ?? null;
@@ -354,7 +396,76 @@ if ($action === "view_problems") {
     include 'templates/header.php';
     include 'templates/view_history.php';
     include 'templates/footer.php';
+} elseif ($action === "compare_revision") {
+    $id = (int)$_GET['id'];
+    $rev1_id = (int)($_GET['rev1'] ?? 0);
+    $rev2_id = (int)($_GET['rev2'] ?? 0);
+    
+    $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
+    $stmt->execute([":id" => $id]);
+    $problem = $stmt->fetch();
+    if (!$problem) redirect("view_problems", [], "Not found");
+
+    if ($rev1_id) {
+      $stmt = $db->prepare("SELECT * FROM problem_revisions WHERE id = :rev_id AND problem_id = :id");
+      $stmt->execute([":rev_id" => $rev1_id, ":id" => $id]);
+      $rev1 = $stmt->fetch();
+      if ($rev1) {
+          $usernames = DiscuzBridge::getUsernames([$rev1['user_id']]);
+          $rev1['username'] = $usernames[$rev1['user_id']] ?? "Unknown";
+      }
+    } else {
+      $rev1 = ['id' => 0, 'statement' => $problem['statement'], 'template' => $problem['template'], 'time' => 'Current', 'username' => 'Live'];
+    }
+
+    if (!$rev2_id && $rev1_id) {
+       $stmt = $db->prepare("SELECT id FROM problem_revisions WHERE problem_id = :pid AND id < :rid ORDER BY id DESC LIMIT 1");
+       $stmt->execute([":pid" => $id, ":rid" => $rev1_id]);
+       $rev2_id = (int)$stmt->fetchColumn();
+    } elseif (!$rev2_id && !$rev1_id) {
+       $stmt = $db->prepare("SELECT MAX(id) FROM problem_revisions WHERE problem_id = :pid");
+       $stmt->execute([":pid" => $id]);
+       $rev2_id = (int)$stmt->fetchColumn();
+    }
+
+    if ($rev2_id) {
+      $stmt = $db->prepare("SELECT * FROM problem_revisions WHERE id = :id");
+      $stmt->execute([":id" => $rev2_id]);
+      $rev2 = $stmt->fetch();
+      if ($rev2) {
+          $usernames = DiscuzBridge::getUsernames([$rev2['user_id']]);
+          $rev2['username'] = $usernames[$rev2['user_id']] ?? "Unknown";
+      }
+    } else {
+      $rev2 = null;
+    }
+    include 'templates/header.php';
+    include 'templates/compare_revision.php';
+    include 'templates/footer.php';
 } elseif ($action === "view_status") {
+    $stmt = $db->query("SELECT COUNT(*) FROM submissions WHERE status = 'PENDING'");
+    $pending_count = $stmt->fetchColumn();
+
+    $stmt = $db->query("SELECT s.*, p.title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PROCESSING' LIMIT 1");
+    $active_job = $stmt->fetch();
+    if ($active_job) {
+        $usernames = DiscuzBridge::getUsernames([$active_job['user']]);
+        $active_job['username'] = $usernames[$active_job['user']] ?? "Unknown";
+    }
+
+    $stmt = $db->query("SELECT s.*, p.title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status NOT IN ('PENDING', 'PROCESSING') ORDER BY s.id DESC LIMIT 10");
+    $recent_jobs = $stmt->fetchAll();
+    $uids = array_unique(array_column($recent_jobs, 'user'));
+    $usernames = DiscuzBridge::getUsernames($uids);
+    foreach ($recent_jobs as &$j) {
+        $j['username'] = $usernames[$j['user']] ?? "Unknown";
+    }
+    unset($j);
+
+    include 'templates/header.php';
+    include 'templates/view_status.php';
+    include 'templates/footer.php';
+} elseif ($action === "status_info") {
     include 'templates/header.php';
     include 'templates/status_info.php';
     include 'templates/footer.php';
