@@ -7,6 +7,8 @@
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
 database/
 
 # PHP
@@ -33,6 +35,8 @@ tmp/
 temp/
 *.tmp
 *.cache
+*.export
+*.ndjson
 
 # OS files
 .DS_Store
