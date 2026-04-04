@@ -1,48 +1,43 @@
 # Lean Online Judge (LeanOJ)
 
-A lightweight online judge for Lean 4 theorem proving.
+An online judge for Lean 4 theorem proving, optimized for **Instant Verification**, zero-dependency deployment, and seamless integration with the Discuz! forum system.
 
-## Features
--   **Lean 4 Integration**: Verifies theorem proofs using the Lean 4 compiler.
--   **AXLE API Support**: Offloads computationally expensive verification to the AXLE infrastructure.
--   **Recursive Dependencies**: Problems can depend on other problems. Theorems from dependency problems are automatically prepended to the current problem's context.
--   **Discuz! Integration**: Built-in bridge for authentication with Discuz! forums.
--   **Zero-Dependency Server**: Unlike the original `leanoj-web`, this version **does not require** a local Lean 4 or Mathlib 4 installation on your server.
--   **Optimized Performance**: By offloading verification to the **AXLE API**, theorem checking is significantly faster and more stable than a local server-side setup.
+## Key Features
 
-## Database Schema (SQLite)
+*   **Instant Judge**: Submissions are verified synchronously using the **AXLE v4.28.0 API**. No background workers or queues are required.
+*   **Zero-Dependency**: No local Lean 4, Mathlib, or sandboxing tools needed on the server.
+*   **Centralized Logging**: All verification logs are stored directly in the SQLite database.
+*   **Discuz! Integration**: Dynamic user resolution via the forum database; no redundant local users table.
+*   **Version History**: Full problem statement and template history with rollback capabilities.
 
-```sql
-CREATE TABLE problems (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    statement TEXT,
-    template TEXT,
-    dependencies TEXT, -- JSON array of problems(id)
-    creator_id INTEGER -- UID from Discuz!
-);
+## Architecture
 
-CREATE TABLE submissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    problem INTEGER NOT NULL REFERENCES problems(id),
-    user INTEGER NOT NULL, -- UID from Discuz!
-    source TEXT NOT NULL,
-    status TEXT NOT NULL,
-    time TEXT NOT NULL,
-    log TEXT
-);
+*   **Core**: PHP 8.4+, HTML5, Vanilla CSS.
+*   **Database**: SQLite (`db.sqlite`).
+*   **Verification Engine**: Synchronous calls to **AXLE API** (`lean-4.28.0` environment).
+*   **Authentication**: Integrated with Discuz! BBS via `DiscuzBridge`.
 
-CREATE TABLE problem_revisions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    problem_id INTEGER NOT NULL REFERENCES problems(id),
-    statement TEXT,
-    template TEXT,
-    user_id INTEGER NOT NULL,
-    time TEXT NOT NULL
-);
-```
+## Deployment
 
-## Setup & Environment
-1.  **Database**: Ensure `db.sqlite` exists in the root directory and has been initialized with `init_db.sql`.
-2.  **Permissions**: Ensure `www-data` has write access to the root directory and `db.sqlite`.
-3.  **Run Worker**: Start the background judge: `php worker.php`.
+LeanOJ is designed for "zero-configuration" deployment.
+
+1.  **Setup Database**: Ensure `db.sqlite` exists and is initialized.
+    ```bash
+    sqlite3 db.sqlite < init_db.sql
+    ```
+2.  **Configure Nginx/Apache**: Point your web root to the project directory.
+3.  **AXLE Access**: The system is pre-configured to use the public AXLE verification endpoint.
+
+## Project Structure
+
+*   `index.php`: The monolithic controller handling all routes and instant verification.
+*   `src/DiscuzBridge.php`: Handles session synchronization with the Discuz! BBS.
+*   `templates/`: Pure PHP templates for the UI.
+*   `init_db.sql`: The base schema for initializing the project.
+
+## Database Schema
+
+The system uses a simple SQLite schema:
+*   `problems`: Problem statements, Lean templates, and recursive dependencies.
+*   `submissions`: User solutions, status (`PASSED`/`ERROR`), and full compiler logs.
+*   `problem_revisions`: Temporal snapshots of problems for history/rollback.
