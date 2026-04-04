@@ -24,6 +24,8 @@ Once you click submit, your code is placed into a queue. Our backend worker will
 - **PASSED:** Congratulations! Lean successfully verified your proof without any errors or sorries.
 - **ERROR / TIMEOUT:** Your code failed to compile, contained an unresolved `sorry`, or took too long to verify. You can review the *Compiler Log* directly on your submission's detail page to see why it failed.
 
+*Note: The Lean 4 version used by the checker is v4.11.0, and Mathlib version is v4.29.0.*
+
 ### 5. Recursive Dependencies & Libraries
 Lean OJ supports **recursive problem dependencies**:
 - If Problem B depends on Problem A, anything that depends on B will automatically inherit the theorems from A.

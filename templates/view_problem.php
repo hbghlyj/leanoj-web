@@ -22,7 +22,6 @@
         <a href="index.php?action=view_problem&id=<?= $dep['id'] ?>"><?= htmlspecialchars($dep['title']) ?></a> 
       <?php endforeach; ?>
     <?php endif; ?>
-    <em>Mathlib version used by the checker is v4.29.0.</em>
   </p>
   <div class="code-container">
     <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
