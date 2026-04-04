@@ -31,6 +31,9 @@
   <h3>Submit Solution</h3>
   <?php if ($user_id): ?>
     <?php if (!empty($problem['template'])): ?>
+      <p style="font-size: 0.85em; color: #666;">
+        Tip: Verify your proof on the <strong><a href="https://live.lean-lang.org/" target="_blank">Lean 4 Web Editor</a></strong> before submitting.
+      </p>
       <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
         <div>

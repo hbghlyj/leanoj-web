@@ -16,6 +16,8 @@ You can provide your proof in two ways:
 
 *Note: Make sure your submission includes all necessary `import` statements (like `import Mathlib`) if you rely on them.*
 
+**Tip:** You can use the **[Lean 4 Web Editor](https://live.lean-lang.org/)** to draft and verify your proof in real-time before submitting it here.
+
 ### 4. Submit and Wait for Judgment
 Once you click submit, your code is placed into a queue. Our backend worker will compile your Lean code using the Lean 4 compiler.
 - **PENDING / PROCESSING:** Your submission is waiting or is currently being verified.
