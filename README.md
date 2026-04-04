@@ -17,16 +17,10 @@ The system operates as a set of interconnected services on the Linux server:
 The application uses a centered SQLite database. The current schema is as follows:
 
 ```sql
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-);
-
 CREATE TABLE local_files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     path TEXT UNIQUE NOT NULL, -- Restricted to /var/www/leanoj/local_files/
-    creator_id INTEGER NOT NULL REFERENCES users(id),
+    creator_id INTEGER NOT NULL, -- UID from Discuz!
     status TEXT NOT NULL DEFAULT 'PASSED',
     log TEXT
 );
@@ -35,7 +29,7 @@ CREATE TABLE local_file_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     local_file_id INTEGER NOT NULL REFERENCES local_files(id),
     content TEXT NOT NULL,
-    user_id INTEGER NOT NULL REFERENCES users(id), -- The person who saved this version
+    user_id INTEGER NOT NULL, -- UID from Discuz!
     time TEXT NOT NULL
 );
 
@@ -45,15 +39,14 @@ CREATE TABLE problems (
     statement TEXT NOT NULL,
     template TEXT NOT NULL,
     answer INTEGER, -- References local_files(id)
-    contest INTEGER, -- Legacy field
-    owner_id INTEGER REFERENCES users(id),
+    creator_id INTEGER, -- UID from Discuz!
     FOREIGN KEY(answer) REFERENCES local_files(id)
 );
 
 CREATE TABLE submissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     problem INTEGER NOT NULL REFERENCES problems(id),
-    user INTEGER NOT NULL REFERENCES users(id),
+    user INTEGER NOT NULL, -- UID from Discuz!
     source TEXT NOT NULL,
     status TEXT NOT NULL,
     time TEXT NOT NULL
@@ -64,7 +57,7 @@ CREATE TABLE problem_revisions (
     problem_id INTEGER NOT NULL REFERENCES problems(id),
     statement TEXT NOT NULL,
     template TEXT NOT NULL,
-    user_id INTEGER REFERENCES users(id),
+    user_id INTEGER, -- UID from Discuz!
     time TEXT NOT NULL
 );
 ```
