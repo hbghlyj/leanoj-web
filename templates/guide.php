@@ -27,7 +27,7 @@ Welcome to the **Lean Online Judge**! This guide is split into two sections to h
 Head over to the **[Problems](index.php?action=view_problems)** page. You will see a list of mathematical challenges translated into Lean 4 theorem signatures. Choose a problem by clicking on its title.
 
 ### 2. Understand the Statement
-The problem page displays the informal mathematical statement along with the formal Lean `theorem` signature. Your goal is to write a Lean proof that successfully replaces the `sorry` and satisfies the theorem type.
+The problem page displays the informal mathematical statement along with the formal Lean `theorem` signature. **Statements are rendered using Markdown and KaTeX**, allowing for rich formatting and clear mathematical notation. Your goal is to write a Lean proof that successfully replaces the `sorry` and satisfies the theorem type.
 
 ### 3. Write Your Proof
 You can provide your proof in two ways:
