@@ -3,6 +3,15 @@ if (php_sapi_name() !== 'cli') {
     header("HTTP/1.1 403 Forbidden");
     die("Access denied: This script must be run from the command line.");
 }
+
+// SINGLETON LOCK
+$lockFile = __DIR__ . '/worker.lock';
+$lockFp = fopen($lockFile, 'c');
+if (!$lockFp || !flock($lockFp, LOCK_EX | LOCK_NB)) {
+    die("Worker already running.\n");
+}
+// Note: $lockFp will stay open until the script terminates, holding the lock.
+
 $db = new PDO("sqlite:" . __DIR__ . "/db.sqlite");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
