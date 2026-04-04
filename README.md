@@ -72,8 +72,8 @@ Lean OJ features a robust version tracking system for both domain-specific data 
 - **Version Comparison**: Users can view side-by-side diffs (powered by `jsdiff`) to see exactly what changed.
 - **Rollback**: Anyone can instantly revert a problem to any historical state.
 
-### 2. Local Reference Files
-- **Filesystem Tracking**: Reference solutions are stored as physical `.lean` files in `/var/www/leanoj/local_files/`.
+### 2. Local Dependencies
+- **Filesystem Tracking**: Dependencies are stored as physical `.lean` files in `/var/www/leanoj/local_files/`.
 - **Content Versioning**: Every edit to a local file's content or path creates a snapshot in `local_file_revisions`. Snapshots capture the **previous** state before an overwrite occurs.
 - **Creator Management**: The user who registered a file (the Creator) can edit content directly in the browser and manage the file's path.
 - **Admin Oversight**: Admins can manage any file, even if they aren't the creator, and prune historical snapshots.
@@ -83,12 +83,12 @@ Lean OJ features a robust version tracking system for both domain-specific data 
 
 ## 🔐 Permissions & Ownership
 - **Problem Ownership**: When a user creates a problem, they are designated as the owner.
-- **Local File Creator**: Every file registered has a `creator_id`.
+- **Local Dependency Creator**: Every file registered has a `creator_id`.
 - **Admin Access Only**: 
     - Full system control (Delete any problem, submission, or revision).
     - Modify restricted problem fields like **Title**.
 - **Creator/Admin Rights**: 
-    - Manage **Local Files** (Register, Edit, and Rollback linked files).
+    - Manage **Local Dependencies** (Register, Edit, and Rollback linked files).
 - **Public/Logged-in Rights**: 
     - Can edit any problem's statement and template.
     - Can delete their own problems and their own submissions.
@@ -97,9 +97,8 @@ Lean OJ features a robust version tracking system for both domain-specific data 
 
 ## 🏛️ Architecture Decisions
 
-### 1. `sudoers` Bridge for Local Files
-To provide immediate (synchronous) validation when a user registers a Local File, and to thoroughly eliminate cached compilation artifacts when a file is deleted, the web backend requires elevated privileges typically isolated to the `worker`.
-- **Decision:** Rather than building a complex asynchronous web-queue for file verification, we use a secure `sudoers` whitelist.
+To provide immediate (synchronous) validation when a user registers a Local Dependency, and to thoroughly eliminate cached compilation artifacts when a file is deleted, the web backend requires elevated privileges typically isolated to the `worker`.
+- **Decision:** Rather than building a complex asynchronous web-queue for dependency verification, we use a secure `sudoers` whitelist.
 - **Implementation:** The `www-data` web user is granted `NOPASSWD` execution rights exclusively for two tightly-scoped scripts:
   - `leanoj_verify_local.sh`: Wraps `isolate` to synchronously compile `.lean` files during the HTTP POST request.
   - `leanoj_sweep_artifacts.sh`: Safely purges `.olean` files from the root-owned `.lake/build` directory upon file deletion.
