@@ -66,8 +66,9 @@ $db = new PDO("sqlite:" . __DIR__ . "/db.sqlite");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-function get_recursive_dependency_content($db, $ids, &$visited = []) {
+function get_recursive_dependency_content($db, $ids, &$visited) {
   $content = "";
+  $names = [];
   foreach ($ids as $id) {
     if (in_array((int)$id, $visited)) continue;
     $visited[] = (int)$id;
@@ -79,13 +80,19 @@ function get_recursive_dependency_content($db, $ids, &$visited = []) {
 
     $sub_deps = json_decode($row['dependencies'] ?: '[]', true);
     if (!empty($sub_deps)) {
-      $content .= get_recursive_dependency_content($db, $sub_deps, $visited);
+      $sub_res = get_recursive_dependency_content($db, $sub_deps, $visited);
+      $content .= $sub_res['content'];
+      $names = array_merge($names, $sub_res['names']);
     }
     if (!empty($row['template'])) {
       $content .= $row['template'] . "\n";
+      // EXTRACT THEOREM NAMES FOR PERMITTED SORRIES
+      if (preg_match_all('/(?:theorem|lemma|def|instance|example)\s+([^\s\(\)\:\{\[]+)/', $row['template'], $matches)) {
+        $names = array_merge($names, $matches[1]);
+      }
     }
   }
-  return $content;
+  return ['content' => $content, 'names' => array_unique($names)];
 }
 
 if ($action === "logout") {
@@ -114,13 +121,16 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     
     // INSTANT VERIFICATION via AXLE
     $visited = [];
-    $dependency_content = get_recursive_dependency_content($db, json_decode($prob['dependencies'] ?: '[]', true), $visited);
-    
+    $dep_data = get_recursive_dependency_content($db, json_decode($prob['dependencies'] ?: '[]', true), $visited);
+    $dependency_content = $dep_data['content'];
+    $permitted = array_merge($dep_data['names'], ['Lean.trustCompiler', 'Lean.ofReduceBool', 'Lean.ofReduceNat']);
+
     $res = axle_api_call("verify_proof", [
       "formal_statement" => $dependency_content . $prob['template'],
       "content" => $dependency_content . $source_code,
       "environment" => "lean-4.28.0",
       "ignore_imports" => true,
+      "permitted_sorries" => array_values($permitted),
       "timeout_seconds" => 120
     ]);
 
@@ -151,15 +161,23 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $deps_json = json_encode($deps);
     
     $visited = [];
-    $prepended_content = get_recursive_dependency_content($db, $deps, $visited);
+    $dep_data = get_recursive_dependency_content($db, $deps, $visited);
+    $prepended_content = $dep_data['content'];
+    $permitted = array_merge($dep_data['names'], ['Lean.trustCompiler', 'Lean.ofReduceBool', 'Lean.ofReduceNat']);
 
     if (empty($title)) redirect("add_problem", [], "Title is required");
     
     if (!empty($template)) {
+        // Also permit the theorem in the template itself if it's currently a sorry
+        if (preg_match_all('/(?:theorem|lemma|def|instance|example)\s+([^\s\(\)\:\{\[]+)/', $template, $m)) {
+          $permitted = array_merge($permitted, $m[1]);
+        }
+
         $res = axle_api_call("check", [
           "content" => $prepended_content . $template,
           "environment" => "lean-4.28.0",
           "ignore_imports" => true,
+          "permitted_sorries" => array_values(array_unique($permitted)),
           "timeout_seconds" => 120
         ]);
         if ($res && isset($res['okay']) && !$res['okay']) {
@@ -195,13 +213,21 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($title)) redirect("edit_problem", ["id" => $id], "Title required");
     
     $visited = [];
-    $prepended_content = get_recursive_dependency_content($db, $deps, $visited);
+    $dep_data = get_recursive_dependency_content($db, $deps, $visited);
+    $prepended_content = $dep_data['content'];
+    $permitted = array_merge($dep_data['names'], ['Lean.trustCompiler', 'Lean.ofReduceBool', 'Lean.ofReduceNat']);
 
     if (!empty($template)) {
+        // Also permit the theorem in the template itself if it's currently a sorry
+        if (preg_match_all('/(?:theorem|lemma|def|instance|example)\s+([^\s\(\)\:\{\[]+)/', $template, $m)) {
+          $permitted = array_merge($permitted, $m[1]);
+        }
+
         $res = axle_api_call("check", [
           "content" => $prepended_content . $template,
           "environment" => "lean-4.28.0",
           "ignore_imports" => true,
+          "permitted_sorries" => array_values(array_unique($permitted)),
           "timeout_seconds" => 120
         ]);
         if ($res && isset($res['okay']) && !$res['okay']) {
