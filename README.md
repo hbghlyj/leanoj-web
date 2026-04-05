@@ -13,7 +13,7 @@ An online judge for Lean 4 theorem proving, optimized for **Instant Verification
 ## Architecture
 
 *   **Core**: PHP 8.4+, HTML5, Vanilla CSS.
-*   **Database**: SQLite (`db.sqlite`).
+*   **Database**: SQLite (`db.sqlite`, an empty template is included in the repo).
 *   **Verification Engine**: Synchronous calls to **AXLE API** (`lean-4.28.0` environment).
 *   **Authentication**: Integrated with Discuz! BBS via `DiscuzBridge`.
 
@@ -41,6 +41,3 @@ The system uses a simple SQLite schema:
 *   `problems`: Problem statements, Lean templates, and recursive dependencies.
 *   `submissions`: Archived source code of successfully verified proofs.
 *   `problem_revisions`: Temporal snapshots of problems for history/rollback.
-
----
-*Modernized for the Lean community with speed and simplicity in mind.*
