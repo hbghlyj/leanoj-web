@@ -4,9 +4,9 @@ An online judge for Lean 4 theorem proving, optimized for **Instant Verification
 
 ## Key Features
 
-*   **Instant Judge**: Submissions are verified synchronously using the **AXLE v4.28.0 API**. No background workers or queues are required.
+*   **Instant Judge**: Submissions are verified synchronously using the **AXLE v4.28.0 API**. Results are immediate, and no background workers or queues are required.
+*   **Success-Only Storage**: Only verified, successful proofs are archived in the database. Unsuccessful attempts are shown as real-time feedback but are not stored, keeping the system clean and performant.
 *   **Zero-Dependency**: No local Lean 4, Mathlib, or sandboxing tools needed on the server.
-*   **Centralized Logging**: All verification logs are stored directly in the SQLite database.
 *   **Discuz! Integration**: Dynamic user resolution via the forum database; no redundant local users table.
 *   **Version History**: Full problem statement and template history with rollback capabilities.
 
@@ -39,5 +39,8 @@ LeanOJ is designed for "zero-configuration" deployment.
 
 The system uses a simple SQLite schema:
 *   `problems`: Problem statements, Lean templates, and recursive dependencies.
-*   `submissions`: User solutions, status (`PASSED`/`ERROR`), and full compiler logs.
+*   `submissions`: Archived source code of successfully verified proofs.
 *   `problem_revisions`: Temporal snapshots of problems for history/rollback.
+
+---
+*Modernized for the Lean community with speed and simplicity in mind.*
