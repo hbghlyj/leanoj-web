@@ -154,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   }
 
   elseif ($action === "add_problem" && $user_id) {
+    $_SESSION['flash_input'] = $_POST;
     $title = trim($_POST['title'] ?? "");
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
@@ -194,10 +195,12 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt = $db->prepare("INSERT INTO problem_revisions (problem_id, statement, template, user_id, time) VALUES (:problem_id, :statement, :template, :user_id, :time)");
     $stmt->execute([":problem_id" => $problem_id, ":statement" => $statement, ":template" => $template, ":user_id" => $user_id, ":time" => $time]);
     
+    unset($_SESSION['flash_input']);
     redirect("view_problem", ["id" => $problem_id]);
   }
 
   elseif ($action === "edit_problem" && $user_id) {
+    $_SESSION['flash_input'] = $_POST;
     $id = (int)$_POST['id'] ?: null;
     $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
     $stmt->execute([":id" => $id]);
@@ -244,6 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       $stmt = $db->prepare("INSERT INTO problem_revisions (problem_id, statement, template, user_id, time) VALUES (:problem_id, :statement, :template, :user_id, :time)");
       $stmt->execute([":problem_id" => $id, ":statement" => $statement, ":template" => $template, ":user_id" => $user_id, ":time" => $time]);
     }
+    unset($_SESSION['flash_input']);
     redirect("view_problem", ["id" => $id]);
   }
 
@@ -351,6 +355,8 @@ if ($action === "view_problems") {
 } elseif ($action === "add_problem" && $user_id) {
     $stmt = $db->query("SELECT id, title FROM problems ORDER BY title ASC");
     $other_problems = $stmt->fetchAll();
+    $flash_input = $_SESSION['flash_input'] ?? [];
+    unset($_SESSION['flash_input']);
     include 'templates/header.php';
     include 'templates/add_problem.php';
     include 'templates/footer.php';
@@ -364,6 +370,16 @@ if ($action === "view_problems") {
     $stmt = $db->query("SELECT id, title FROM problems WHERE id != $id ORDER BY title ASC");
     $other_problems = $stmt->fetchAll();
     $problem['deps_array'] = json_decode($problem['dependencies'] ?: '[]', true);
+
+    $flash_input = $_SESSION['flash_input'] ?? [];
+    unset($_SESSION['flash_input']);
+    if (!empty($flash_input)) {
+        $problem['title'] = $flash_input['title'] ?? $problem['title'];
+        $problem['statement'] = $flash_input['statement'] ?? $problem['statement'];
+        $problem['template'] = $flash_input['template_text'] ?? $problem['template'];
+        $problem['deps_array'] = $flash_input['dependencies'] ?? $problem['deps_array'];
+    }
+
     include 'templates/header.php';
     include 'templates/edit_problem.php';
     include 'templates/footer.php';
