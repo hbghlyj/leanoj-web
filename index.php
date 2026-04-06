@@ -478,6 +478,11 @@ if ($action === "view_problems") {
     include 'templates/footer.php';
 } elseif ($action === "view_history") {
     $id = (int)($_GET['id'] ?? 0);
+    $stmt = $db->prepare("SELECT * FROM problems WHERE id = ?");
+    $stmt->execute([$id]);
+    $problem = $stmt->fetch();
+    if (!$problem) redirect("view_problems", [], "Not found");
+
     $stmt = $db->prepare("SELECT * FROM problem_revisions WHERE problem_id = ? ORDER BY time DESC");
     $stmt->execute([$id]);
     $revisions = $stmt->fetchAll();
