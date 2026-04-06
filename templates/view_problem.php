@@ -49,7 +49,7 @@
       </p>
     <?php endif; ?>
   <?php else: ?>
-    <p><a href="index.php?action=login">Login</a> to submit a solution.</p>
+    <p><a href="/member.php?mod=logging&action=login">Login</a> to submit a solution.</p>
   <?php endif; ?>
   <h3>Recent Submissions</h3>
   <?php if ($recent_submissions): ?>
