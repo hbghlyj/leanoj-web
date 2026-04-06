@@ -21,9 +21,12 @@ An online judge for Lean 4 theorem proving, optimized for **Instant Verification
 
 LeanOJ is designed for "zero-configuration" deployment.
 
-1.  **Setup Database**: Ensure `db.sqlite` exists and is initialized.
+1.  **Setup Database**: Create and initialize the database. If deploying on a web server, ensure you grant the correct permissions so PHP can write to it (e.g., `www-data`):
     ```bash
+    rm -f db.sqlite
     sqlite3 db.sqlite < init_db.sql
+    chown www-data:www-data db.sqlite
+    chmod 664 db.sqlite
     ```
 2.  **Configure Nginx/Apache**: Point your web root to the project directory.
 3.  **AXLE Access**: The system is pre-configured to use the public AXLE verification endpoint.
