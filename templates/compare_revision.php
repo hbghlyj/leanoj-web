@@ -2,7 +2,7 @@
 <p>
   <strong>Newer Version:</strong> <?= htmlspecialchars($rev1['time']) ?> by <?= htmlspecialchars($rev1['username'] ?? 'Unknown') ?>
   <br>
-  <strong>Older Version:</strong> <?= $rev2 ? htmlspecialchars($rev2['time']) : "Initial State (Empty)" ?>
+  <strong>Older Version:</strong> <?= $rev2 ? htmlspecialchars($rev2['time']) . " by " . htmlspecialchars($rev2['username'] ?? 'Unknown') : "Initial State (Empty)" ?>
 </p>
 
 <div style="display: flex; gap: 20px;">
