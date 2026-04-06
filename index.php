@@ -538,10 +538,6 @@ if ($action === "view_problems") {
     include 'templates/header.php';
     include 'templates/compare_revision.php';
     include 'templates/footer.php';
-} elseif ($action === "status_info") {
-    include 'templates/header.php';
-    include 'templates/status_info.php';
-    include 'templates/footer.php';
 } elseif ($action === "guide") {
     include 'templates/header.php';
     include 'templates/guide.php';
