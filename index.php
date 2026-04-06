@@ -350,7 +350,7 @@ if ($action === "view_problems") {
     include 'templates/footer.php';
 } elseif ($action === "add_problem" && $user_id) {
     $stmt = $db->query("SELECT id, title FROM problems ORDER BY title ASC");
-    $all_problems = $stmt->fetchAll();
+    $other_problems = $stmt->fetchAll();
     include 'templates/header.php';
     include 'templates/add_problem.php';
     include 'templates/footer.php';
@@ -362,7 +362,7 @@ if ($action === "view_problems") {
     if (!$problem) redirect("view_problems");
     
     $stmt = $db->query("SELECT id, title FROM problems WHERE id != $id ORDER BY title ASC");
-    $all_problems = $stmt->fetchAll();
+    $other_problems = $stmt->fetchAll();
     $problem['deps_array'] = json_decode($problem['dependencies'] ?: '[]', true);
     include 'templates/header.php';
     include 'templates/edit_problem.php';

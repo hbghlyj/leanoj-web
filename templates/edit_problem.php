@@ -16,7 +16,7 @@
   <h3>Dependencies</h3>
   <select name="dependencies[]" multiple style="height: 100px;">
     <?php foreach ($other_problems as $op): ?>
-      <option value="<?= $op['id'] ?>" <?= in_array($op['id'], $problem['dependencies'] ?: []) ? 'selected' : '' ?>>
+      <option value="<?= $op['id'] ?>" <?= in_array($op['id'], $problem['deps_array'] ?: []) ? 'selected' : '' ?>>
         <?= htmlspecialchars($op['title']) ?> (ID: <?= $op['id'] ?>)
       </option>
     <?php endforeach; ?>
