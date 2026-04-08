@@ -1,4 +1,4 @@
-<h2>
+<h2 class="math-title">
   <?= htmlspecialchars($problem['title']) ?>
   <?php if ($user_id): ?>
     <span class="admin-link">
