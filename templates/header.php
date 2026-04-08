@@ -21,6 +21,21 @@
         const rawText = el.textContent.trim();
         el.innerHTML = marked.parse(rawText);
       }
+      if (typeof renderMathInElement === 'function') {
+        const titleEls = document.querySelectorAll('.math-title');
+        for (const el of titleEls) {
+          renderMathInElement(el, {
+            throwOnError: false,
+            ignoredClasses: ['admin-link'],
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+              { left: '\\(', right: '\\)', display: false },
+              { left: '\\[', right: '\\]', display: true }
+            ]
+          });
+        }
+      }
     });
   </script>
   <script>
