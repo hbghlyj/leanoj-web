@@ -19,7 +19,7 @@
           <td><?= $p['id'] ?></td>
           <td style="max-width: 400px">
             <?= $p['is_solved'] ? "🎉 " : "" ?>
-            <a href="index.php?action=view_problem&id=<?= (int)$p['id'] ?>">
+            <a class="math-title" href="index.php?action=view_problem&id=<?= (int)$p['id'] ?>">
               <?= htmlspecialchars($p['title']) ?>
             </a>
           </td>
