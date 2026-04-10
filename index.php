@@ -147,8 +147,15 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
         redirect("view_submission", ["id" => $submission_id]);
     } else {
         // FAILURES ARE DISCARDED; SHOW ERROR LOG IN FLASH
-        $errors = $res['tool_messages']['errors'] ?? ($res['lean_messages']['errors'] ?? ["Verification failed or timed out."]);
+        $errors = array_merge(
+            $res['tool_messages']['errors'] ?? [],
+            $res['lean_messages']['errors'] ?? []
+        );
+        if (empty($errors)) {
+            $errors = ["Verification failed or timed out."];
+        }
         $_SESSION['flash_error_log'] = implode("\n", $errors);
+        $_SESSION['flash_input'] = $_POST;
         redirect("view_problem", ["id" => $problem_id]);
     }
   }
@@ -413,6 +420,9 @@ if ($action === "view_problems") {
         $sub['username'] = $usernames[$sub['user']] ?? "UID: " . $sub['user'];
     }
     unset($sub);
+
+    $flash_input = $_SESSION['flash_input'] ?? [];
+    unset($_SESSION['flash_input']);
 
     include 'templates/header.php';
     include 'templates/view_problem.php';

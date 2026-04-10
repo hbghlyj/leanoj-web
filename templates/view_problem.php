@@ -36,7 +36,7 @@
       <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
         <div>
-        <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."></textarea>
+        <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."><?= htmlspecialchars($flash_input['source_text'] ?? "") ?></textarea>
         </div>
       <p>Or upload as a file (.lean):</p>
       <input type="file" name="source_file" accept=".lean">
