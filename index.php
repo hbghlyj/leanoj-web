@@ -24,7 +24,7 @@ function validate_file($file_key, $max_size = 262144) {
   if ($_FILES[$file_key]['size'] > $max_size) {
     return "File too large (max 256KB)";
   }
-  if (strpos(mime_content_type($_FILES[$file_key]['tmp_name']), 'text/') !== 0) {
+  if (function_exists('mime_content_type') && strpos(mime_content_type($_FILES[$file_key]['tmp_name']), 'text/') !== 0) {
     return "Invalid file";
   }
 }
@@ -104,35 +104,45 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   if ($action === "submit_solution" && $user_id) {
     $problem_id = (int)($_POST['problem_id'] ?? 0);
     $time = date("Y-m-d\TH:i:s", time());
-    $source_code = trim($_POST['source_text'] ?? "");
-
+    
     $stmt = $db->prepare("SELECT template, dependencies FROM problems WHERE id = :id");
     $stmt->execute([":id" => $problem_id]);
     $prob = $stmt->fetch();
     if (!$prob || empty($prob['template'])) {
         redirect("view_problem", ["id" => $problem_id], "Submissions are disabled.");
     }
+    
+    $source_code = trim($_POST['source_text'] ?? "");
     if (!empty($_FILES['source_file']['tmp_name'])) {
       $err = validate_file('source_file');
       if ($err) redirect("view_problem", ["id" => $problem_id], $err);
       $source_code = trim(file_get_contents($_FILES['source_file']['tmp_name']));
     }
-    if (empty($source_code)) redirect("view_problem", ["id" => $problem_id], "Solution empty");
     
-    // INSTANT VERIFICATION via AXLE
+    // Axle Backend Bug Workaround: CRLF sequences completely corrupt line tracking
+    // in the Axle execution environment resulting in phantom characters.
+    $source_code = str_replace("\r\n", "\n", $source_code);
+    $template_content = str_replace("\r\n", "\n", $prob['template']);
+
+    if (empty($source_code)) redirect("view_problem", ["id" => $problem_id], "Solution empty");
+
     $visited = [];
     $dep_data = get_recursive_dependency_content($db, json_decode($prob['dependencies'] ?: '[]', true), $visited);
-    $dependency_content = $dep_data['content'];
-    $permitted = array_merge($dep_data['names'], ['Lean.trustCompiler', 'Lean.ofReduceBool', 'Lean.ofReduceNat']);
+    $dependency_content = str_replace("\r\n", "\n", $dep_data['content']);
 
-    $res = axle_api_call("verify_proof", [
-      "formal_statement" => $dependency_content . $prob['template'],
+    $permitted = ['Lean.trustCompiler', 'Lean.ofReduceBool', 'Lean.ofReduceNat'];
+    $permitted = array_merge($permitted, $dep_data['names']);
+
+    $payload = [
+      "formal_statement" => $dependency_content . $template_content,
       "content" => $dependency_content . $source_code,
       "environment" => "lean-4.28.0",
       "ignore_imports" => true,
       "permitted_sorries" => array_values($permitted),
       "timeout_seconds" => 120
-    ]);
+    ];
+    file_put_contents("payload_log.json", json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    $res = axle_api_call("verify_proof", $payload);
 
     if ($res && isset($res['okay']) && $res['okay']) {
         // ONLY INSERT ON SUCCESS
@@ -154,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
         if (empty($errors)) {
             $errors = ["Verification failed or timed out."];
         }
+        file_put_contents("failed_source.txt", $source_code);
         $_SESSION['flash_error_log'] = implode("\n", $errors);
         $_SESSION['flash_input'] = $_POST;
         redirect("view_problem", ["id" => $problem_id]);

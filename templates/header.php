@@ -40,7 +40,7 @@
   </script>
   <script>
     function copyCode(button) {
-      const code = button.nextElementSibling.innerText;
+      const code = button.nextElementSibling.textContent;
       navigator.clipboard.writeText(code).then(() => {
         const originalText = button.innerText;
         button.innerText = "Copied!";
