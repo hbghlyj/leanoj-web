@@ -35,14 +35,17 @@
       </p>
       <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
+        <?php if (!empty($flash_input['edit_submission'])): ?>
+          <input type="hidden" name="edit_submission" value="<?= (int)$flash_input['edit_submission'] ?>">
+        <?php endif; ?>
         <div>
-        <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."><?= htmlspecialchars($flash_input['source_text'] ?? "") ?></textarea>
-        <?php unset($_SESSION['flash_input']); ?>
+          <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."><?= htmlspecialchars($flash_input['source_text'] ?? "") ?></textarea>
+          <?php unset($_SESSION['flash_input']); ?>
         </div>
-      <p>Or upload as a file (.lean):</p>
-      <input type="file" name="source_file" accept=".lean">
-      &nbsp;
-      <input type="submit" value="Submit">
+        <p>Or upload as a file (.lean):</p>
+        <input type="file" name="source_file" accept=".lean">
+        &nbsp;
+        <input type="submit" value="<?= !empty($flash_input['edit_submission']) ? 'Save Changes' : 'Submit' ?>">
       </form>
     <?php else: ?>
       <p class="warning-box" style="color: #d9534f; background: #f9f2f2; padding: 10px; border-left: 5px solid #d9534f;">

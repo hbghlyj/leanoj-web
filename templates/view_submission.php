@@ -1,6 +1,9 @@
 <h2>
   Submission #<?= (int)$submission['id'] ?>
   <?php if ($is_admin || ($user_id && $submission['user'] == $user_id)): ?>
+    <a href="index.php?action=view_problem&id=<?= (int)$submission['problem'] ?>&edit_submission=<?= (int)$submission['id'] ?>">
+      <button type="button">Edit</button>
+    </a>
     <form method="POST" action="index.php?action=delete_submission" style="display:inline;" onsubmit="return confirm('Delete submission?');">
       <input type="hidden" name="id" value="<?= (int)$submission['id'] ?>">
       <input type="submit" value="Delete">

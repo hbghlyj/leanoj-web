@@ -145,15 +145,28 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $res = axle_api_call("verify_proof", $payload);
 
     if ($res && isset($res['okay']) && $res['okay']) {
-        // ONLY INSERT ON SUCCESS
-        $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, time) VALUES (:problem, :user, :source, :time)");
-        $stmt->execute([
-            ":problem" => $problem_id, 
-            ":user" => $user_id, 
-            ":source" => $source_code, 
-            ":time" => $time
-        ]);
-        $submission_id = $db->lastInsertId();
+        // ONLY INSERT OR UPDATE ON SUCCESS
+        $edit_id = (int)($_POST['edit_submission'] ?? 0);
+        if ($edit_id) {
+            $stmt = $db->prepare("UPDATE submissions SET source = :source, time = :time WHERE id = :id AND (user = :user OR :is_admin)");
+            $stmt->execute([
+                ":id" => $edit_id,
+                ":source" => $source_code,
+                ":time" => $time,
+                ":user" => $user_id,
+                ":is_admin" => (int)$is_admin
+            ]);
+            $submission_id = $edit_id;
+        } else {
+            $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, time) VALUES (:problem, :user, :source, :time)");
+            $stmt->execute([
+                ":problem" => $problem_id, 
+                ":user" => $user_id, 
+                ":source" => $source_code, 
+                ":time" => $time
+            ]);
+            $submission_id = $db->lastInsertId();
+        }
         redirect("view_submission", ["id" => $submission_id]);
     } else {
         // FAILURES ARE DISCARDED; SHOW ERROR LOG IN FLASH
@@ -434,6 +447,17 @@ if ($action === "view_problems") {
 
     $flash_input = $_SESSION['flash_input'] ?? [];
     unset($_SESSION['flash_input']);
+
+    $edit_submission_id = (int)($_GET['edit_submission'] ?? 0);
+    if ($edit_submission_id && empty($flash_input)) {
+        $stmt = $db->prepare("SELECT source FROM submissions WHERE id = ? AND (user = ? OR ?)");
+        $stmt->execute([$edit_submission_id, $user_id, (int)$is_admin]);
+        $source = $stmt->fetchColumn();
+        if ($source !== false) {
+            $flash_input['source_text'] = $source;
+            $flash_input['edit_submission'] = $edit_submission_id;
+        }
+    }
 
     include 'templates/header.php';
     include 'templates/view_problem.php';
