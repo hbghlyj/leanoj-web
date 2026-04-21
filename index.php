@@ -123,22 +123,20 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       $source_code = trim(file_get_contents($_FILES['source_file']['tmp_name']));
     }
     
-    // Axle Backend Bug Workaround: CRLF sequences completely corrupt line tracking
-    // in the Axle execution environment resulting in phantom characters.
-    $source_code = str_replace("\r\n", "\n", $source_code);
-    $template_content = str_replace("\r\n", "\n", $prob['template']);
+    // Strip \r from user-submitted code (browser POSTs use CRLF on Windows).
+    $source_code = str_replace("\r", "", $source_code);
 
     if (empty($source_code)) redirect("view_problem", ["id" => $problem_id], "Solution empty");
 
     $visited = [];
     $dep_data = get_recursive_dependency_content($db, json_decode($prob['dependencies'] ?: '[]', true), $visited);
-    $dependency_content = str_replace("\r\n", "\n", $dep_data['content']);
+    $dependency_content = $dep_data['content'];
 
     $permitted = ['Lean.trustCompiler', 'Lean.ofReduceBool', 'Lean.ofReduceNat'];
     $permitted = array_merge($permitted, $dep_data['names']);
 
     $payload = [
-      "formal_statement" => $dependency_content . $template_content,
+      "formal_statement" => $dependency_content . $prob['template'],
       "content" => $dependency_content . $source_code,
       "environment" => "lean-4.28.0",
       "ignore_imports" => true,
