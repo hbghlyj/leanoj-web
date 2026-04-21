@@ -29,6 +29,10 @@ function validate_file($file_key, $max_size = 262144) {
   }
 }
 
+function strip_cr(string $s): string {
+  return str_replace("\r", "", $s);
+}
+
 function redirect($action = "guide", $params = [], $error = "") {
   $query = $params;
   $query['action'] = $action;
@@ -186,9 +190,9 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
   elseif ($action === "add_problem" && $user_id) {
     $_SESSION['flash_input'] = $_POST;
-    $title = trim($_POST['title'] ?? "");
-    $statement = trim($_POST['statement'] ?? "");
-    $template = trim($_POST['template_text'] ?? "");
+    $title = strip_cr(trim($_POST['title'] ?? ""));
+    $statement = strip_cr(trim($_POST['statement'] ?? ""));
+    $template = strip_cr(trim($_POST['template_text'] ?? ""));
     $deps = array_map('intval', (array)($_POST['dependencies'] ?? []));
     $deps_json = json_encode($deps);
     
@@ -240,9 +244,9 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     
     $deps = array_map('intval', (array)($_POST['dependencies'] ?? []));
     $deps_json = json_encode($deps);
-    $title = trim($_POST['title'] ?? "");
-    $statement = trim($_POST['statement'] ?? "");
-    $template = trim($_POST['template_text'] ?? "");
+    $title = strip_cr(trim($_POST['title'] ?? ""));
+    $statement = strip_cr(trim($_POST['statement'] ?? ""));
+    $template = strip_cr(trim($_POST['template_text'] ?? ""));
 
     if (empty($title)) redirect("edit_problem", ["id" => $id], "Title required");
     
@@ -322,8 +326,8 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
     $stmt = $db->prepare("UPDATE problems SET statement = :statement, template = :template WHERE id = :id");
     $stmt->execute([
-      ":statement" => $rev['statement'],
-      ":template" => $rev['template'],
+      ":statement" => strip_cr($rev['statement']),
+      ":template" => strip_cr($rev['template']),
       ":id" => $prob_id
     ]);
     
@@ -331,8 +335,8 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt = $db->prepare("INSERT INTO problem_revisions (problem_id, statement, template, user_id, time) VALUES (:problem_id, :statement, :template, :user_id, :time)");
     $stmt->execute([
       ":problem_id" => $prob_id,
-      ":statement" => $rev['statement'],
-      ":template" => $rev['template'],
+      ":statement" => strip_cr($rev['statement']),
+      ":template" => strip_cr($rev['template']),
       ":user_id" => $user_id,
       ":time" => $time,
     ]);
@@ -459,10 +463,6 @@ if ($action === "view_problems") {
         }
     }
 
-
-    // Normalize CRLF -> LF so marked-katex-extension can parse $$...$$ display math
-    $problem['statement'] = str_replace("\r\n", "\n", $problem['statement']);
-    $problem['template']  = str_replace("\r\n", "\n", $problem['template']);
 
     include 'templates/header.php';
     include 'templates/view_problem.php';
