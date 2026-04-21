@@ -459,6 +459,11 @@ if ($action === "view_problems") {
         }
     }
 
+
+    // Normalize CRLF -> LF so marked-katex-extension can parse $$...$$ display math
+    $problem['statement'] = str_replace("\r\n", "\n", $problem['statement']);
+    $problem['template']  = str_replace("\r\n", "\n", $problem['template']);
+
     include 'templates/header.php';
     include 'templates/view_problem.php';
     include 'templates/footer.php';

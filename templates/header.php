@@ -16,23 +16,30 @@
         displayMode: false,
         nonStandard: true
       }));
+
+      const katexDelimiters = [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false },
+        { left: '\\(', right: '\\)', display: false },
+        { left: '\\[', right: '\\]', display: true }
+      ];
+
       const els = document.querySelectorAll('.markdown');
       for (const el of els) {
         const rawText = el.textContent.trim();
         el.innerHTML = marked.parse(rawText);
+        if (typeof renderMathInElement === 'function') {
+          renderMathInElement(el, { throwOnError: false, delimiters: katexDelimiters });
+        }
       }
+
       if (typeof renderMathInElement === 'function') {
         const titleEls = document.querySelectorAll('.math-title');
         for (const el of titleEls) {
           renderMathInElement(el, {
             throwOnError: false,
             ignoredClasses: ['admin-link'],
-            delimiters: [
-              { left: '$$', right: '$$', display: true },
-              { left: '$', right: '$', display: false },
-              { left: '\\(', right: '\\)', display: false },
-              { left: '\\[', right: '\\]', display: true }
-            ]
+            delimiters: katexDelimiters
           });
         }
       }
