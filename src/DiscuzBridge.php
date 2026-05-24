@@ -9,7 +9,7 @@ class DiscuzBridge
             return;
         }
 
-        $configPath = '/var/www/bbs/config/config_global.php';
+        $configPath = '/var/www/bbs-codex-continue-after-c6b44c734/config/config_global.php';
         if (!file_exists($configPath)) {
             return;
         }
@@ -81,7 +81,7 @@ class DiscuzBridge
 
     public static function clearCookies()
     {
-        $configPath = '/var/www/bbs/config/config_global.php';
+        $configPath = '/var/www/bbs-codex-continue-after-c6b44c734/config/config_global.php';
         if (!file_exists($configPath)) return;
         require $configPath;
         
@@ -144,7 +144,7 @@ class DiscuzBridge
     }
 
     private static function getConfig() {
-        $configPath = '/var/www/bbs/config/config_global.php';
+        $configPath = '/var/www/bbs-codex-continue-after-c6b44c734/config/config_global.php';
         if (!file_exists($configPath)) return [];
         require $configPath;
         return $_config;
